@@ -14,7 +14,7 @@ defaults:
     shell: bash
 
 env:
-  RELEASE: ${{ github.run_id }}
+  RELEASE: ${{ github.run_number }}
   SENTRY: ${{ secrets.SENTRY_DSN }}
 
 jobs:
