@@ -100,33 +100,33 @@ jobs:
           -o bin/linux/pinnacle-linux-arm64
           pinnacle/src
 
-#      - name: Copy syso files
-#        run: |
-#          cp -r pkg/windows/syso/* src/
-#
-#      - name: Build for Windows (amd64)
-#        run: >-
-#          env
-#          GOARCH=amd64
-#          GOOS=windows
-#          CC="zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-#          CXX="zig c++ -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-#          go build -trimpath
-#          -ldflags="-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-#          -o bin/windows/pinnacle-windows-amd64.exe
-#          pinnacle/src
-#
-#      - name: Build for Windows (arm64)
-#        run: >-
-#          env
-#          GOARCH=arm64
-#          GOOS=windows
-#          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-#          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-#          go build -trimpath
-#          -ldflags "-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-#          -o bin/windows/pinnacle-windows-arm64.exe
-#          pinnacle/src
+      - name: Copy syso files
+        run: |
+          cp -r pkg/windows/syso/* src/
+
+      - name: Build for Windows (amd64)
+        run: >-
+          env
+          GOARCH=amd64
+          GOOS=windows
+          CC="zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+          CXX="zig c++ -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+          go build -trimpath
+          -ldflags="-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+          -o bin/windows/pinnacle-windows-amd64.exe
+          pinnacle/src
+
+      - name: Build for Windows (arm64)
+        run: >-
+          env
+          GOARCH=arm64
+          GOOS=windows
+          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+          go build -trimpath
+          -ldflags "-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+          -o bin/windows/pinnacle-windows-arm64.exe
+          pinnacle/src
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -135,97 +135,97 @@ jobs:
           path: bin
           retention-days: 1
 
-#  build_macos:
-#    runs-on: macos-latest
-#    env:
-#      CGO_ENABLED: 1
-#
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v4
-#
-#      - name: Set up Go
-#        uses: WillAbides/setup-go-faster@v1.14.0
-#        with:
-#          go-version-file: 'go.mod'
-#
-#      - name: Read version
-#        run: |
-#          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-#
-#      - name: Build for amd64
-#        run: >-
-#          env
-#          GOARCH=amd64
-#          GOOS=darwin
-#          go build -trimpath -buildmode=pie
-#          -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-#          -o bin/darwin/pinnacle-darwin-amd64
-#          pinnacle/src
-#
-#      - name: Build for arm64
-#        run: >-
-#          env
-#          GOARCH=arm64
-#          GOOS=darwin
-#          go build -trimpath -buildmode=pie
-#          -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-#          -o bin/darwin/pinnacle-darwin-arm64
-#          pinnacle/src
-#
-#      - name: Upload artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: macos-binaries
-#          path: bin/darwin
-#          retention-days: 1
+  build_macos:
+    runs-on: macos-latest
+    env:
+      CGO_ENABLED: 1
 
-#  package_windows:
-#    runs-on: windows-latest
-#    needs: build_windows_linux
-#    steps:
-#      - name: Checkout .iss files
-#        uses: actions/checkout@v4
-#        with:
-#          sparse-checkout: |
-#            pkg/windows
-#            VERSION
-#
-#      - name: Download binaries
-#        uses: actions/download-artifact@v4
-#        with:
-#          name: windows-linux-binaries
-#          path: bin
-#
-#      - name: Read version
-#        run: |
-#          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-#
-#      - name: Prepare for packaging
-#        run: |
-#          # Set variables for .iss file paths
-#          AMD_ISS=pkg/windows/iss/PackagePinnacle-amd64.iss
-#          ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
-#
-#          # Edit versions in iss files
-#          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
-#          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
-#
-#          # Export env variables
-#          echo "AMD_ISS=${AMD_ISS}" >> $GITHUB_ENV
-#          echo "ARM_ISS=${ARM_ISS}" >> $GITHUB_ENV
-#
-#      - name: Package with Inno Setup
-#        run: |
-#          iscc.exe "$AMD_ISS"
-#          iscc.exe "$ARM_ISS"
-#
-#      - name: Upload artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: windows-installers
-#          path: build/out
-#          retention-days: 1
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: WillAbides/setup-go-faster@v1.14.0
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Read version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Build for amd64
+        run: >-
+          env
+          GOARCH=amd64
+          GOOS=darwin
+          go build -trimpath -buildmode=pie
+          -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+          -o bin/darwin/pinnacle-darwin-amd64
+          pinnacle/src
+
+      - name: Build for arm64
+        run: >-
+          env
+          GOARCH=arm64
+          GOOS=darwin
+          go build -trimpath -buildmode=pie
+          -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+          -o bin/darwin/pinnacle-darwin-arm64
+          pinnacle/src
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-binaries
+          path: bin/darwin
+          retention-days: 1
+
+  package_windows:
+    runs-on: windows-latest
+    needs: build_windows_linux
+    steps:
+      - name: Checkout .iss files
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            pkg/windows
+            VERSION
+
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-linux-binaries
+          path: bin
+
+      - name: Read version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Prepare for packaging
+        run: |
+          # Set variables for .iss file paths
+          AMD_ISS=pkg/windows/iss/PackagePinnacle-amd64.iss
+          ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
+
+          # Edit versions in iss files
+          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
+          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
+
+          # Export env variables
+          echo "AMD_ISS=${AMD_ISS}" >> $GITHUB_ENV
+          echo "ARM_ISS=${ARM_ISS}" >> $GITHUB_ENV
+
+      - name: Package with Inno Setup
+        run: |
+          iscc.exe "$AMD_ISS"
+          iscc.exe "$ARM_ISS"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installers
+          path: build/out
+          retention-days: 1
 
   package_linux:
     runs-on: [ ubuntu-latest ]
@@ -341,106 +341,106 @@ jobs:
           path: build/out
           retention-days: 1
 
-#  package_macos:
-#    runs-on: macos-latest
-#    needs: build_macos
-#    steps:
-#      - name: Checkout pkg/darwin
-#        uses: actions/checkout@v4
-#        with:
-#          sparse-checkout: |
-#            pkg/darwin
-#            VERSION
-#
-#      - name: Download binaries
-#        uses: actions/download-artifact@v4
-#        with:
-#          name: macos-binaries
-#          path: bin
-#
-#      - name: Read version
-#        run: |
-#          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-#
-#      - name: Set up environment
-#        run: |
-#          # Set env variables for paths
-#          APP="pkg/darwin/Alpine Client.app/Contents"
-#
-#          # Create necessary folders
-#          mkdir "${APP}/MacOS"
-#          mkdir -p build/out/
-#
-#          # Replace version in Info.plist files
-#          sed -i '' "s/<string>1.0.0<\/string>/<string>${VERSION}<\/string>/" "${APP}/Info.plist"
-#
-#          # Move compiled binary
-#          cp bin/pinnacle-darwin-amd64 "${APP}/MacOS/pinnacle-darwin-amd64"
-#
-#          # Set permissions
-#          chmod +x "${APP}/MacOS/pinnacle-darwin-amd64"
-#
-#          # Export APP env for later
-#          echo "APP=${APP}" >> $GITHUB_ENV
-#
-#      - name: Package for amd64
-#        run: >-
-#          pkgbuild
-#          --root pkg/darwin
-#          --identifier com.alpineclient.pinnacle
-#          --version "$VERSION"
-#          --install-location /Applications
-#          "build/out/AlpineClientSetup-${VERSION}-x86_64.pkg"
-#
-#      - name: Swap and64 binary for arm64
-#        run: |
-#          rm -f "${APP}/MacOS/pinnacle-darwin-amd64"
-#          cp bin/pinnacle-darwin-arm64 "${APP}/MacOS/pinnacle-darwin-arm64"
-#          sed -i '' 's/amd64/arm64/g' "${APP}/Info.plist"
-#          chmod +x "${APP}/MacOS/pinnacle-darwin-arm64"
-#
-#      - name: Package for arm64
-#        run: >-
-#          pkgbuild
-#          --root pkg/darwin
-#          --identifier com.alpineclient.pinnacle
-#          --version "$VERSION"
-#          --install-location /Applications
-#          "build/out/AlpineClientSetup-${VERSION}-ARM64.pkg"
-#
-#      - name: Upload artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: macos-installers
-#          path: build/out
-#          retention-days: 1
+  package_macos:
+    runs-on: macos-latest
+    needs: build_macos
+    steps:
+      - name: Checkout pkg/darwin
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            pkg/darwin
+            VERSION
 
-#  merge_artifacts:
-#    needs: [ package_windows, package_linux, package_macos ]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Download
-#        uses: actions/download-artifact@v4
-#        with:
-#          path: all
-#
-#      - name: Reorganize
-#        run: |
-#          mkdir -p merged/{binaries,installers}
-#
-#          # Combine binaries
-#          cp -r all/windows-linux-binaries/*/ merged/binaries/
-#          cp -r all/macos-binaries/* merged/binaries/
-#
-#          # Combine installers
-#          cp -r all/windows-installers/* merged/installers/
-#          cp -r all/macos-installers/* merged/installers/
-#          cp -r all/linux-installers/* merged/installers/
-#
-#      - name: Upload
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: all-artifacts-${{ env.RELEASE }}
-#          path: merged
-#          compression-level: 9
-#          retention-days: 90
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-binaries
+          path: bin
+
+      - name: Read version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Set up environment
+        run: |
+          # Set env variables for paths
+          APP="pkg/darwin/Alpine Client.app/Contents"
+
+          # Create necessary folders
+          mkdir "${APP}/MacOS"
+          mkdir -p build/out/
+
+          # Replace version in Info.plist files
+          sed -i '' "s/<string>1.0.0<\/string>/<string>${VERSION}<\/string>/" "${APP}/Info.plist"
+
+          # Move compiled binary
+          cp bin/pinnacle-darwin-amd64 "${APP}/MacOS/pinnacle-darwin-amd64"
+
+          # Set permissions
+          chmod +x "${APP}/MacOS/pinnacle-darwin-amd64"
+
+          # Export APP env for later
+          echo "APP=${APP}" >> $GITHUB_ENV
+
+      - name: Package for amd64
+        run: >-
+          pkgbuild
+          --root pkg/darwin
+          --identifier com.alpineclient.pinnacle
+          --version "$VERSION"
+          --install-location /Applications
+          "build/out/AlpineClientSetup-${VERSION}-x86_64.pkg"
+
+      - name: Swap and64 binary for arm64
+        run: |
+          rm -f "${APP}/MacOS/pinnacle-darwin-amd64"
+          cp bin/pinnacle-darwin-arm64 "${APP}/MacOS/pinnacle-darwin-arm64"
+          sed -i '' 's/amd64/arm64/g' "${APP}/Info.plist"
+          chmod +x "${APP}/MacOS/pinnacle-darwin-arm64"
+
+      - name: Package for arm64
+        run: >-
+          pkgbuild
+          --root pkg/darwin
+          --identifier com.alpineclient.pinnacle
+          --version "$VERSION"
+          --install-location /Applications
+          "build/out/AlpineClientSetup-${VERSION}-ARM64.pkg"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installers
+          path: build/out
+          retention-days: 1
+
+  merge_artifacts:
+    needs: [ package_windows, package_linux, package_macos ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          path: all
+
+      - name: Reorganize
+        run: |
+          mkdir -p merged/{binaries,installers}
+
+          # Combine binaries
+          cp -r all/windows-linux-binaries/*/ merged/binaries/
+          cp -r all/macos-binaries/* merged/binaries/
+
+          # Combine installers
+          cp -r all/windows-installers/* merged/installers/
+          cp -r all/macos-installers/* merged/installers/
+          cp -r all/linux-installers/* merged/installers/
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-artifacts-${{ env.RELEASE }}
+          path: merged
+          compression-level: 9
+          retention-days: 90
