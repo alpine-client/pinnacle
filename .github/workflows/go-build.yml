@@ -268,17 +268,17 @@ jobs:
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           mkdir -p ~/debbuild/alpine-client/{DEBIAN,usr/bin,usr/share/applications,usr/share/pixmaps}
 
-          # Make binaries executable
-          chmod +x bin/linux/pinnacle-linux-amd64
-          chmod +x bin/linux/pinnacle-linux-arm64
-
           # Copy resources
           cp -r pkg/linux/rpm/* ~/rpmbuild/
           cp -r pkg/linux/deb/* ~/debbuild/alpine-client/
 
           # Copy binaries
           cp bin/linux/pinnacle-linux-amd64 ~/rpmbuild/SOURCES/
-          cp bin/linux/pinnacle-linux-amd64 ~/debbuild/alpine-client/usr/bin/
+          cp bin/linux/pinnacle-linux-amd64 ~/debbuild/alpine-client/usr/bin/alpine-client
+          
+          # Make binaries executable
+          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-amd64
+          chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
 
           # Create output folder
           mkdir -p build/out
@@ -300,7 +300,7 @@ jobs:
         run: |
           # Remove amd64 binaries
           rm -f ~/rpmbuild/SOURCES/pinnacle-darwin-amd64
-          rm -f ~/debbuild/alpine-client/usr/bin/pinnacle-darwin-amd64
+          rm -f ~/debbuild/alpine-client/usr/bin/alpine-client
 
           # Edit arch & binary name in spec/control files
           sed -i -e 's/linux-amd64/linux-arm64/g' -e 's/x86_64/aarch64/g' ~/rpmbuild/SPECS/pinnacle.spec
@@ -308,7 +308,11 @@ jobs:
 
           # Copy arm64 binaries
           cp bin/linux/pinnacle-linux-arm64 ~/rpmbuild/SOURCES/
-          cp bin/linux/pinnacle-linux-arm64 ~/debbuild/alpine-client/usr/bin/
+          cp bin/linux/pinnacle-linux-arm64 ~/debbuild/alpine-client/usr/bin/alpine-client
+          
+          # Make binaries executable
+          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-arm64
+          chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
 
       - name: Package .rpm (arm64)
         run: >-
