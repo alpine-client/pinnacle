@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Alpine Client
+Exec=/usr/bin/alpine-client
+Icon=/usr/share/pixmaps/alpine-client-icon.png
+Terminal=false
+Categories=Game;
+Keywords=alpine;client;minecraft;

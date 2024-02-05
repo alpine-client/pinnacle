@@ -1,0 +1,12 @@
+Package: alpine-client
+Version: 1.0.0-1
+Section: games
+Priority: optional
+Architecture: amd64
+Homepage: https://alpineclient.com/
+Maintainer: Crystal Development, LLC <contact@crystaldev.co>
+Description: A lightweight multi-version Minecraft modpack
+  Alpine Client is an all-in-one modpack for Minecraft that offers a
+  multitude of enhancements and optimizations to improve your gameplay.
+  It brings together popular mods, exclusive features, player cosmetics,
+  and multi-version support to curate the ultimate player experience.
