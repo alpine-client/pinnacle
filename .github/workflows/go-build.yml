@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - 'release'
-      - 'test'
+      - 'test/**'
 
 permissions:
   contents: read
@@ -294,6 +294,7 @@ jobs:
         run: >-
           dpkg-deb
           --build ~/debbuild/alpine-client
+          --compression=gzip
           "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
 
       - name: Swap binaries
@@ -321,6 +322,7 @@ jobs:
         run: >-
           dpkg-deb
           --build ~/debbuild/alpine-client
+          --compression=gzip
           "build/out/alpine-client_${VERSION}-${RELEASE}_arm64.deb"
 
       - name: Tidy artifact
