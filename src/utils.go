@@ -66,23 +66,24 @@ func (sys OperatingSystem) JavaExecutable() string {
 }
 
 func GetFromUrl(url string) (io.ReadCloser, error) {
-	// Create the HTTP request
+	// Create the HTTP client
 	client := http.Client{
-		Timeout: 180 * time.Second,
 		Transport: &http.Transport{
 			DialContext: (&net.Dialer{
 				Timeout: 10 * time.Second,
 			}).DialContext,
 		},
 	}
+
+	// Create the HTTP request
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	userAgent := "Pinnacle"
+	userAgent := "https://github.com/alpine-client/pinnacle (contact@crystaldev.co)"
 	if version != "" {
-		userAgent += fmt.Sprintf("-%s", version)
+		userAgent += fmt.Sprintf(" v%s", version)
 	}
 	request.Header.Set("User-Agent", userAgent)
 
