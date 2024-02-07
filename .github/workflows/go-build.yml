@@ -34,6 +34,10 @@ jobs:
           sudo sed -i -E 's|^deb ([^ ]+) (.*)$|deb [arch=amd64] \1 \2\ndeb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ \2|' /etc/apt/sources.list
           sudo dpkg --add-architecture arm64
 
+      - name: Check libstdc version
+        run: |
+          dpkg -l | grep libstdc
+
       - name: Install dependencies
         run: >-
           sudo apt-get update &&
