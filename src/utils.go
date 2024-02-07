@@ -65,7 +65,7 @@ func GetFromUrl(url string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Set("User-Agent", fmt.Sprintf("%s v%s (%s)", ProjectURL, version, SupportEmail))
+	request.Header.Set("User-Agent", fmt.Sprintf("Pinnacle/%s (%s; %s)", Version, Sys, Arch))
 
 	// Perform the HTTP request
 	response, err := client.Do(request)

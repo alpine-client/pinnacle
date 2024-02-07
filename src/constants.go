@@ -4,7 +4,6 @@ type OperatingSystem string
 type Architecture string
 
 const (
-	ProjectURL   string = "https://github.com/alpine-client/pinnacle"
 	MetadataURL  string = "https://metadata.alpineclientprod.com"
 	SupportURL   string = "https://discord.alpineclient.com"
 	SupportEmail string = "contact@crystaldev.co"
