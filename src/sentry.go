@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/getsentry/sentry-go"
+	"os"
 	"runtime"
 )
 
@@ -18,11 +19,13 @@ func StartSentry(release string) {
 }
 
 func CreateSentryHub(task string) *sentry.Hub {
+	name, _ := os.Hostname()
 	localHub := sentry.CurrentHub().Clone()
 	localHub.ConfigureScope(func(scope *sentry.Scope) {
 		scope.SetTag("Task", task)
 		scope.SetTag("OS", runtime.GOOS)
 		scope.SetTag("Arch", runtime.GOARCH)
+		scope.SetUser(sentry.User{Name: name})
 	})
 	return localHub
 }
