@@ -10,8 +10,6 @@ import (
 	"github.com/ncruces/zenity"
 )
 
-const supportURL = "https://discord.alpineclient.com"
-
 // HandleFatalError sends the error to sentry and displays a pop-up for the user
 // Ensures that only the first pop-up displays in the event of multiple errors.
 func HandleFatalError(message string, err error, hub *sentry.Hub) {

@@ -11,21 +11,6 @@ import (
 	"time"
 )
 
-type OperatingSystem string
-
-type Architecture string
-
-const (
-	Windows OperatingSystem = "windows"
-	Linux                   = "linux"
-	Mac                     = "macos"
-)
-
-const (
-	x86   Architecture = "x86"
-	Arm64              = "arm"
-)
-
 func SystemInformation() (OperatingSystem, Architecture) {
 	var sys OperatingSystem
 	var arch Architecture
@@ -80,12 +65,7 @@ func GetFromUrl(url string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	userAgent := "https://github.com/alpine-client/pinnacle (contact@crystaldev.co)"
-	if version != "" {
-		userAgent += fmt.Sprintf(" v%s", version)
-	}
-	request.Header.Set("User-Agent", userAgent)
+	request.Header.Set("User-Agent", fmt.Sprintf("%s v%s (%s)", ProjectURL, version, SupportEmail))
 
 	// Perform the HTTP request
 	response, err := client.Do(request)

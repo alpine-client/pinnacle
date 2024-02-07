@@ -14,12 +14,6 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
-const (
-	WindowWidth  int     = 377
-	WindowHeight int     = 144
-	LogoSize     float32 = 80
-)
-
 var (
 	Sys        OperatingSystem
 	Arch       Architecture
