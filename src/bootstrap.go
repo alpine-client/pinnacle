@@ -14,8 +14,6 @@ import (
 	"github.com/mholt/archiver/v3"
 )
 
-const endpoint string = "https://metadata.alpineclientprod.com"
-
 const TotalTasks = 13
 
 var CompletedTasks = 0
@@ -37,7 +35,7 @@ func BeginLauncher(wg *sync.WaitGroup) {
 	hub := CreateSentryHub("BeginLauncher")
 	targetPath := filepath.Join(WorkingDir, "launcher.jar")
 
-	body, err := GetFromUrl(endpoint + "/pinnacle")
+	body, err := GetFromUrl(MetadataURL + "/pinnacle")
 	HandleFatalError("Failed to get launcher information", err, hub)
 	defer body.Close()
 	updateProgress(1)
@@ -81,7 +79,7 @@ func BeginJre(wg *sync.WaitGroup) {
 	HandleFatalError("Failed to create JRE directories", err, hub)
 	updateProgress(1)
 
-	body, err := GetFromUrl(fmt.Sprintf("%s/jre?version=17&os=%s&arch=%s", endpoint, Sys, Arch))
+	body, err := GetFromUrl(fmt.Sprintf("%s/jre?version=17&os=%s&arch=%s", MetadataURL, Sys, Arch))
 	HandleFatalError("Failed to get JRE information", err, hub)
 	defer body.Close()
 	updateProgress(1)

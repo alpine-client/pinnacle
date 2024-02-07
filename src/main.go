@@ -14,24 +14,18 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
-const (
-	WindowWidth  int     = 377
-	WindowHeight int     = 144
-	LogoSize     float32 = 80
-)
-
 var (
+	Version    string
 	Sys        OperatingSystem
 	Arch       Architecture
 	WorkingDir string
 
-	logo    *giu.Texture
-	version string
+	logo *giu.Texture
 )
 
 func main() {
 
-	StartSentry(version)
+	StartSentry(Version)
 	hub := CreateSentryHub("main")
 	defer sentry.Flush(2 * time.Second)
 
@@ -93,8 +87,8 @@ func runTasks(window *giu.MasterWindow) {
 			jarPath,
 		)
 
-		if version != "" {
-			args = append(args, "--pinnacle-version", version)
+		if Version != "" {
+			args = append(args, "--pinnacle-version", Version)
 		}
 
 		processAttr := &os.ProcAttr{

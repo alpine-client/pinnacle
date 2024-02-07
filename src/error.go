@@ -10,8 +10,6 @@ import (
 	"github.com/ncruces/zenity"
 )
 
-const supportURL = "https://discord.alpineclient.com"
-
 // HandleFatalError sends the error to sentry and displays a pop-up for the user
 // Ensures that only the first pop-up displays in the event of multiple errors.
 func HandleFatalError(message string, err error, hub *sentry.Hub) {
@@ -41,17 +39,18 @@ func openSupportWebsite() {
 	var err error
 	switch Sys {
 	case Windows:
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", supportURL).Start()
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", SupportURL).Run()
 	case Mac:
-		err = exec.Command("open", supportURL).Start()
+		err = exec.Command("open", SupportURL).Run()
+	case Linux:
+		err = exec.Command("xdg-open", SupportURL).Run()
 	default:
-		// Chances are we are on some form of Linux, this is our best bet
-		err = exec.Command("xdg-open", supportURL).Start()
+		err = errors.New("unable to open support page")
 	}
-	if err == nil {
+	if err != nil {
 		// None of the above worked. Create new popup with url.
 		_ = zenity.Info(
-			fmt.Sprintf("Please visit %s for assistance.", supportURL),
+			fmt.Sprintf("Please visit %s for assistance.", SupportURL),
 			zenity.Title("Error"), zenity.InfoIcon,
 		)
 	}
