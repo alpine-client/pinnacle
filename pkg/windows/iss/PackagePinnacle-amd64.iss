@@ -52,3 +52,12 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{commonappdata}\.alpineclient\assets"
+Type: filesandordirs; Name: "{commonappdata}\.alpineclient\cache"
+Type: filesandordirs; Name: "{commonappdata}\.alpineclient\jre"
+Type: filesandordirs; Name: "{commonappdata}\.alpineclient\libraries"
+Type: filesandordirs; Name: "{commonappdata}\.alpineclient\logging"
+Type: filesandordirs; Name: "{commonappdata}\.alpineclient\native_libraries"
+Type: filesandordirs; Name: "{commonappdata}\.alpineclient\launcher.jar"
