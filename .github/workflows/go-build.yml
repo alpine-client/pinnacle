@@ -276,12 +276,17 @@ jobs:
           # Set up rpmbuild/debbuild/appbuild file tree
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           mkdir -p ~/debbuild/alpine-client/{DEBIAN,usr/bin,usr/share/applications,usr/share/pixmaps}
-          mkdir -p ~/appbuild/AlpineClient.AppDir/{usr/bin,usr/share/icons/hicolor/scalable/apps}
+          mkdir -p ~/appbuild/AlpineClient.AppDir/{lib,usr/bin,usr/share/icons/hicolor/scalable/apps}
 
           # Copy resources
           cp -r pkg/linux/rpm/* ~/rpmbuild/
           cp -r pkg/linux/deb/* ~/debbuild/alpine-client/
           cp -r pkg/linux/appimage/* ~/appbuild/AlpineClient.AppDir/
+          
+          # Copy libc and libstdc++ for ChromeOS support
+          locate libstdc++.so.6
+          cp $(readlink -f /usr/lib/x86_64-linux-gnu/libstdc++.so.6) ~/appbuild/AlpineClient.AppDir/lib/
+          cp $(readlink -f /usr/lib/x86_64-linux-gnu/libc.so.6) ~/appbuild/AlpineClient.AppDir/lib/
 
           # Copy binaries
           cp bin/linux/pinnacle-linux-amd64 ~/rpmbuild/SOURCES/
@@ -313,7 +318,7 @@ jobs:
       - name: Package .AppImage (amd64)
         run: >-
           ./appimagetool-x86_64.AppImage ~/appbuild/AlpineClient.AppDir
-          "build/out/Alpine_Client-${VERSION}-${RELEASE}-x86_64.deb"
+          "build/out/Alpine_Client-${VERSION}-${RELEASE}-x86_64.AppImage"
 
       - name: Swap binaries
         run: |
