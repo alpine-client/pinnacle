@@ -134,8 +134,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AlpineClientSetup-${{ env.VERSION }}-${{ env.ARCH_NAME }}
-          path: build/out/AlpineClientSetup-${{ env.VERSION }}-${{ env.ARCH_NAME }}
+          name: AlpineClientSetup-${{ env.VERSION }}-${{ env.ARCH_NAME }}.exe
+          path: build/out/AlpineClientSetup-${{ env.VERSION }}-${{ env.ARCH_NAME }}.exe
           retention-days: 1
 
   package_linux:
@@ -188,11 +188,11 @@ jobs:
           cp -r pkg/linux/deb/* ~/debbuild/alpine-client/
 
           # Copy binaries
-          cp "bin/linux/pinnacle" "~/rpmbuild/SOURCES/pinnacle-linux-${{ matrix.arch }}"
+          cp "bin/linux/pinnacle" ~/rpmbuild/SOURCES/pinnacle-linux-${{ matrix.arch }}
           cp "bin/linux/pinnacle" ~/debbuild/alpine-client/usr/bin/alpine-client
           
           # Make binaries executable
-          chmod +x "~/rpmbuild/SOURCES/pinnacle-linux-${{ matrix.arch }}"
+          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-${{ matrix.arch }}
           chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
 
           # Create output folder
