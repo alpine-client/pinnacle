@@ -93,44 +93,44 @@ jobs:
           -o bin/linux/pinnacle-linux-amd64
           pinnacle/src
 
-      - name: Build for Linux (arm64)
-        run: >-
-          env
-          GOARCH=arm64
-          CC="zig cc -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
-          CXX="zig c++ -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
-          go build -trimpath
-          -ldflags="-X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-          -o bin/linux/pinnacle-linux-arm64
-          pinnacle/src
-
-      - name: Copy syso files
-        run: |
-          cp -r pkg/windows/syso/* src/
-
-      - name: Build for Windows (amd64)
-        run: >-
-          env
-          GOARCH=amd64
-          GOOS=windows
-          CC="zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-          CXX="zig c++ -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-          go build -trimpath
-          -ldflags="-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-          -o bin/windows/pinnacle-windows-amd64.exe
-          pinnacle/src
-
-      - name: Build for Windows (arm64)
-        run: >-
-          env
-          GOARCH=arm64
-          GOOS=windows
-          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-          go build -trimpath
-          -ldflags "-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-          -o bin/windows/pinnacle-windows-arm64.exe
-          pinnacle/src
+#      - name: Build for Linux (arm64)
+#        run: >-
+#          env
+#          GOARCH=arm64
+#          CC="zig cc -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
+#          CXX="zig c++ -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
+#          go build -trimpath
+#          -ldflags="-X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+#          -o bin/linux/pinnacle-linux-arm64
+#          pinnacle/src
+#
+#      - name: Copy syso files
+#        run: |
+#          cp -r pkg/windows/syso/* src/
+#
+#      - name: Build for Windows (amd64)
+#        run: >-
+#          env
+#          GOARCH=amd64
+#          GOOS=windows
+#          CC="zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+#          CXX="zig c++ -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+#          go build -trimpath
+#          -ldflags="-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+#          -o bin/windows/pinnacle-windows-amd64.exe
+#          pinnacle/src
+#
+#      - name: Build for Windows (arm64)
+#        run: >-
+#          env
+#          GOARCH=arm64
+#          GOOS=windows
+#          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+#          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+#          go build -trimpath
+#          -ldflags "-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+#          -o bin/windows/pinnacle-windows-arm64.exe
+#          pinnacle/src
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -231,7 +231,7 @@ jobs:
 #          path: build/out
 #          retention-days: 1
 
-  package_linux:
+  package_appimage:
     runs-on: [ ubuntu-latest ]
     needs: build_windows_linux
     steps:
@@ -252,10 +252,7 @@ jobs:
         run: >-
           sudo apt-get update &&
           sudo apt-get install -y
-          rpm
-          debhelper
           devscripts
-          dpkg-dev
           libfuse2
 
       - name: Read version
@@ -271,113 +268,186 @@ jobs:
           curl -sSL ${url} -o appimagetool-x86_64.AppImage
           echo ${sha256} appimagetool-x86_64.AppImage | sha256sum -c -
           chmod a+x appimagetool-x86_64.AppImage
-        
-          # Edit version in specs/control files
-          sed -i "s/^Version:.*/Version: ${VERSION}/" pkg/linux/rpm/SPECS/pinnacle.spec
-          sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
-          sed -i "s/^Version:.*/Version: ${VERSION}-${RELEASE}/" pkg/linux/deb/DEBIAN/control
 
-          # Set up rpmbuild/debbuild/appbuild file tree
-          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-          mkdir -p ~/debbuild/alpine-client/{DEBIAN,usr/bin,usr/share/applications,usr/share/pixmaps}
+          # Set up appbuild file tree
           mkdir -p ~/appbuild/AlpineClient.AppDir/{lib,usr/bin,usr/share/icons/hicolor/scalable/apps}
 
           # Copy resources
-          cp -r pkg/linux/rpm/* ~/rpmbuild/
-          cp -r pkg/linux/deb/* ~/debbuild/alpine-client/
           cp -r pkg/linux/appimage/* ~/appbuild/AlpineClient.AppDir/
           
           # Copy libc and libstdc++ for ChromeOS support
-          ls -a /usr/lib | grep libstdc++.so.6 || true
-          ls -a /usr/lib/x86_64-linux-gnu | grep libstdc++.so.6 || true
-          
           cp $(readlink -f /usr/lib/x86_64-linux-gnu/libstdc++.so.6) ~/appbuild/AlpineClient.AppDir/lib/
           cp $(readlink -f /usr/lib/x86_64-linux-gnu/libc.so.6) ~/appbuild/AlpineClient.AppDir/lib/
 
           # Copy binaries
-          cp bin/linux/pinnacle-linux-amd64 ~/rpmbuild/SOURCES/
-          cp bin/linux/pinnacle-linux-amd64 ~/debbuild/alpine-client/usr/bin/alpine-client
           cp bin/linux/pinnacle-linux-amd64 ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
           
           # Make binaries executable
-          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-amd64
-          chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
           chmod +x ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
           chmod +x ~/appbuild/AlpineClient.AppDir/AppRun
 
           # Create output folder
           mkdir -p build/out
 
-      - name: Package .rpm (amd64)
-        run: >-
-          rpmbuild -bb
-          ~/rpmbuild/SPECS/pinnacle.spec
-          --define "_rpmdir build/out"
-          --target=x86_64
-
-      - name: Package .deb (amd64)
-        run: >-
-          dpkg-deb -Zgzip
-          --build ~/debbuild/alpine-client
-          "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
-
       - name: Package .AppImage (amd64)
         run: >-
           ./appimagetool-x86_64.AppImage ~/appbuild/AlpineClient.AppDir
           "build/out/Alpine_Client-${VERSION}-${RELEASE}-x86_64.AppImage"
 
-      - name: Swap binaries
-        run: |
-          # Remove amd64 binaries
-          rm -f ~/rpmbuild/SOURCES/pinnacle-darwin-amd64
-          rm -f ~/debbuild/alpine-client/usr/bin/alpine-client
-          rm -f ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
-
-          # Edit arch & binary name in spec/control files
-          sed -i -e 's/linux-amd64/linux-arm64/g' -e 's/x86_64/aarch64/g' ~/rpmbuild/SPECS/pinnacle.spec
-          sed -i 's/amd64/arm64/g' ~/debbuild/alpine-client/DEBIAN/control
-
-          # Copy arm64 binaries
-          cp bin/linux/pinnacle-linux-arm64 ~/rpmbuild/SOURCES/
-          cp bin/linux/pinnacle-linux-arm64 ~/debbuild/alpine-client/usr/bin/alpine-client
-          cp bin/linux/pinnacle-linux-arm64 ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
-          
-          # Make binaries executable
-          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-arm64
-          chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
-          chmod +x ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
-
-      - name: Package .rpm (arm64)
-        run: >-
-          rpmbuild -bb
-          ~/rpmbuild/SPECS/pinnacle.spec
-          --define "_rpmdir build/out"
-          --target=aarch64
-
-      - name: Package .deb (arm64)
-        run: >-
-          dpkg-deb -Zgzip
-          --build ~/debbuild/alpine-client
-          "build/out/alpine-client_${VERSION}-${RELEASE}_arm64.deb"
-
-#      - name: Package .AppImage (arm64)
-#        run: >-
-#          ./appimagetool-x86_64.AppImage ~/appbuild/AlpineClient.AppDir
-#          "build/out/Alpine_Client-${VERSION}-${RELEASE}-aarch64.deb"
-
-      - name: Tidy artifact
-        run: |
-          cp -r build/out/x86_64/* build/out/
-          cp -r build/out/aarch64/* build/out/
-          rm -rf build/out/x86_64
-          rm -rf build/out/aarch64
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-installers
-          path: build/out
+          name: Alpine_Client-${{ env.VERSION }}-${{ env.RELEASE }}-x86_64.AppImage
+          path: build/out/Alpine_Client-${{ env.VERSION }}-${{ env.RELEASE }}-x86_64.AppImage
           retention-days: 1
+
+#  package_linux:
+#    runs-on: [ ubuntu-latest ]
+#    needs: build_windows_linux
+#    steps:
+#      - name: Checkout pkg files
+#        uses: actions/checkout@v4
+#        with:
+#          sparse-checkout: |
+#            pkg/linux
+#            VERSION
+#
+#      - name: Download binaries
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: windows-linux-binaries
+#          path: bin
+#
+#      - name: Install dependencies
+#        run: >-
+#          sudo apt-get update &&
+#          sudo apt-get install -y
+#          rpm
+#          debhelper
+#          devscripts
+#          dpkg-dev
+#          libfuse2
+#
+#      - name: Read version
+#        run: |
+#          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+#
+#      - name: Prepare for packaging
+#        run: |
+#          # Download AppImage tool
+#          set -eux
+#          url="https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage"
+#          sha256="df3baf5ca5facbecfc2f3fa6713c29ab9cefa8fd8c1eac5d283b79cab33e4acb"
+#          curl -sSL ${url} -o appimagetool-x86_64.AppImage
+#          echo ${sha256} appimagetool-x86_64.AppImage | sha256sum -c -
+#          chmod a+x appimagetool-x86_64.AppImage
+#
+#          # Edit version in specs/control files
+#          sed -i "s/^Version:.*/Version: ${VERSION}/" pkg/linux/rpm/SPECS/pinnacle.spec
+#          sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
+#          sed -i "s/^Version:.*/Version: ${VERSION}-${RELEASE}/" pkg/linux/deb/DEBIAN/control
+#
+#          # Set up rpmbuild/debbuild/appbuild file tree
+#          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+#          mkdir -p ~/debbuild/alpine-client/{DEBIAN,usr/bin,usr/share/applications,usr/share/pixmaps}
+#          mkdir -p ~/appbuild/AlpineClient.AppDir/{lib,usr/bin,usr/share/icons/hicolor/scalable/apps}
+#
+#          # Copy resources
+#          cp -r pkg/linux/rpm/* ~/rpmbuild/
+#          cp -r pkg/linux/deb/* ~/debbuild/alpine-client/
+#          cp -r pkg/linux/appimage/* ~/appbuild/AlpineClient.AppDir/
+#
+#          # Copy libc and libstdc++ for ChromeOS support
+#          ls -a /usr/lib | grep libstdc++.so.6 || true
+#          ls -a /usr/lib/x86_64-linux-gnu | grep libstdc++.so.6 || true
+#
+#          cp $(readlink -f /usr/lib/x86_64-linux-gnu/libstdc++.so.6) ~/appbuild/AlpineClient.AppDir/lib/
+#          cp $(readlink -f /usr/lib/x86_64-linux-gnu/libc.so.6) ~/appbuild/AlpineClient.AppDir/lib/
+#
+#          # Copy binaries
+#          cp bin/linux/pinnacle-linux-amd64 ~/rpmbuild/SOURCES/
+#          cp bin/linux/pinnacle-linux-amd64 ~/debbuild/alpine-client/usr/bin/alpine-client
+#          cp bin/linux/pinnacle-linux-amd64 ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
+#
+#          # Make binaries executable
+#          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-amd64
+#          chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
+#          chmod +x ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
+#          chmod +x ~/appbuild/AlpineClient.AppDir/AppRun
+#
+#          # Create output folder
+#          mkdir -p build/out
+#
+#      - name: Package .rpm (amd64)
+#        run: >-
+#          rpmbuild -bb
+#          ~/rpmbuild/SPECS/pinnacle.spec
+#          --define "_rpmdir build/out"
+#          --target=x86_64
+#
+#      - name: Package .deb (amd64)
+#        run: >-
+#          dpkg-deb -Zgzip
+#          --build ~/debbuild/alpine-client
+#          "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
+#
+#      - name: Package .AppImage (amd64)
+#        run: >-
+#          ./appimagetool-x86_64.AppImage ~/appbuild/AlpineClient.AppDir
+#          "build/out/Alpine_Client-${VERSION}-${RELEASE}-x86_64.AppImage"
+#
+#      - name: Swap binaries
+#        run: |
+#          # Remove amd64 binaries
+#          rm -f ~/rpmbuild/SOURCES/pinnacle-darwin-amd64
+#          rm -f ~/debbuild/alpine-client/usr/bin/alpine-client
+#          rm -f ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
+#
+#          # Edit arch & binary name in spec/control files
+#          sed -i -e 's/linux-amd64/linux-arm64/g' -e 's/x86_64/aarch64/g' ~/rpmbuild/SPECS/pinnacle.spec
+#          sed -i 's/amd64/arm64/g' ~/debbuild/alpine-client/DEBIAN/control
+#
+#          # Copy arm64 binaries
+#          cp bin/linux/pinnacle-linux-arm64 ~/rpmbuild/SOURCES/
+#          cp bin/linux/pinnacle-linux-arm64 ~/debbuild/alpine-client/usr/bin/alpine-client
+#          cp bin/linux/pinnacle-linux-arm64 ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
+#
+#          # Make binaries executable
+#          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-arm64
+#          chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
+#          chmod +x ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
+#
+#      - name: Package .rpm (arm64)
+#        run: >-
+#          rpmbuild -bb
+#          ~/rpmbuild/SPECS/pinnacle.spec
+#          --define "_rpmdir build/out"
+#          --target=aarch64
+#
+#      - name: Package .deb (arm64)
+#        run: >-
+#          dpkg-deb -Zgzip
+#          --build ~/debbuild/alpine-client
+#          "build/out/alpine-client_${VERSION}-${RELEASE}_arm64.deb"
+#
+##      - name: Package .AppImage (arm64)
+##        run: >-
+##          ./appimagetool-x86_64.AppImage ~/appbuild/AlpineClient.AppDir
+##          "build/out/Alpine_Client-${VERSION}-${RELEASE}-aarch64.deb"
+#
+#      - name: Tidy artifact
+#        run: |
+#          cp -r build/out/x86_64/* build/out/
+#          cp -r build/out/aarch64/* build/out/
+#          rm -rf build/out/x86_64
+#          rm -rf build/out/aarch64
+#
+#      - name: Upload artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: linux-installers
+#          path: build/out
+#          retention-days: 1
 
 #  package_macos:
 #    runs-on: macos-latest
