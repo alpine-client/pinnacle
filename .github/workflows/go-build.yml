@@ -270,7 +270,7 @@ jobs:
           chmod a+x appimagetool-x86_64.AppImage
 
           # Set up appbuild file tree
-          mkdir -p ~/appbuild/AlpineClient.AppDir/{lib,usr/bin,usr/share/icons/hicolor/scalable/apps}
+          mkdir -p ~/appbuild/AlpineClient.AppDir/{lib,usr/share/icons/hicolor/scalable/apps}
 
           # Copy resources
           cp -r pkg/linux/appimage/* ~/appbuild/AlpineClient.AppDir/
@@ -280,10 +280,10 @@ jobs:
           cp $(readlink -f /usr/lib/x86_64-linux-gnu/libc.so.6) ~/appbuild/AlpineClient.AppDir/lib/
 
           # Copy binaries
-          cp bin/linux/pinnacle-linux-amd64 ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
+          cp bin/linux/pinnacle-linux-amd64 ~/appbuild/AlpineClient.AppDir/alpine-client
           
           # Make binaries executable
-          chmod +x ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
+          chmod +x ~/appbuild/AlpineClient.AppDir/alpine-client
           chmod +x ~/appbuild/AlpineClient.AppDir/AppRun
 
           # Create output folder
@@ -296,7 +296,7 @@ jobs:
 
       - name: Package with tar
         run: |
-          tar -cvf "build/out/Alpine_Client-${VERSION}-${RELEASE}-x86_64.AppImage.tar" build/out
+          tar -cpvf "build/out/Alpine_Client-${VERSION}-${RELEASE}-x86_64.AppImage.tar" build/out
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
