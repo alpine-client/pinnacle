@@ -265,7 +265,11 @@ jobs:
       - name: Prepare for packaging
         run: |
           # Download AppImage tool
-          wget "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+          set -eux
+          url="https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage"
+          sha256="df3baf5ca5facbecfc2f3fa6713c29ab9cefa8fd8c1eac5d283b79cab33e4acb"
+          curl -sSL ${url} -o appimagetool-x86_64.AppImage
+          echo ${sha256} appimagetool-x86_64.AppImage | sha256sum -c -
           chmod a+x appimagetool-x86_64.AppImage
         
           # Edit version in specs/control files
