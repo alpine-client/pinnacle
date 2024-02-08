@@ -38,14 +38,15 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      - name: Read version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
       - name: Prepare environment
         env:
           OS: ${{ matrix.os }}
           ARCH: ${{ matrix.arch }}
-        run: |
-          # Read version
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-          
+        run: | 
           # Add OS-specific flags
           FLAGS="-trimpath"
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
@@ -102,6 +103,10 @@ jobs:
 
       - name: Read version
         run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Set env variables
+        run: |
           if [ "${{ matrix.arch }}" = "amd64" ]; then
             ARCH_NAME="x86_64"
           elif [ "${{ matrix.arch }}" = "arm64" ]; then
@@ -110,7 +115,6 @@ jobs:
             ARCH_NAME="???"
           fi
           
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
           echo "ARCH_NAME=${ARCH_NAME}" >> $GITHUB_ENV
 
       - name: Prepare for packaging
@@ -169,11 +173,12 @@ jobs:
           devscripts
           dpkg-dev
 
-      - name: Prepare for packaging
+      - name: Read version
         run: |
-          # Read version
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-          
+
+      - name: Prepare for packaging
+        run: |          
           # Edit version in specs/control files
           sed -i "s/^Version:.*/Version: ${VERSION}/" pkg/linux/rpm/SPECS/pinnacle.spec
           sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
