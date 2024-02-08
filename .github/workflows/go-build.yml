@@ -294,11 +294,15 @@ jobs:
           ./appimagetool-x86_64.AppImage ~/appbuild/AlpineClient.AppDir
           "build/out/Alpine_Client-${VERSION}-${RELEASE}-x86_64.AppImage"
 
+      - name: Package with tar
+        run: |
+          tar -cvf "build/out/Alpine_Client-${VERSION}-${RELEASE}-x86_64.AppImage.tar" build/out
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: Alpine_Client-${{ env.VERSION }}-${{ env.RELEASE }}-x86_64.AppImage
-          path: build/out/Alpine_Client-${{ env.VERSION }}-${{ env.RELEASE }}-x86_64.AppImage
+          path: build/out/Alpine_Client-${{ env.VERSION }}-${{ env.RELEASE }}-x86_64.AppImage.tar
           retention-days: 1
 
 #  package_linux:
