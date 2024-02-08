@@ -274,8 +274,7 @@ jobs:
           cp -r pkg/linux/appimage/* ~/appbuild/AlpineClient.AppDir/
           
           # Copy libc and libstdc++ for ChromeOS support
-          cp -p $(readlink -f /usr/lib/x86_64-linux-gnu/libstdc++.so.6) ~/appbuild/AlpineClient.AppDir/lib/
-          cp -p $(readlink -f /usr/lib/x86_64-linux-gnu/libc.so.6) ~/appbuild/AlpineClient.AppDir/lib/
+          cp -p /usr/lib/x86_64-linux-gnu/* ~/appbuild/AlpineClient.AppDir/lib/
 
           # Copy binaries
           cp -p bin/linux/pinnacle-linux-amd64 ~/appbuild/AlpineClient.AppDir/alpine-client
