@@ -98,7 +98,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: pinnacle-windows-latest-${{ matrix.arch }}
-          path: bin
+          path: bin/windows
 
       - name: Read version
         run: |
@@ -122,7 +122,7 @@ jobs:
           sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ISS_FILE"
           
           # Rename binary
-          mv "bin/pinnacle" "bin/pinnacle-windows-${{ matrix.arch }}.exe"
+          mv "bin/windows/pinnacle" "bin/windows/pinnacle-windows-${{ matrix.arch }}.exe"
 
           # Export env variable
           echo "ISS_FILE=${ISS_FILE}" >> $GITHUB_ENV
@@ -158,7 +158,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: pinnacle-ubuntu-latest-${{ matrix.arch }}
-          path: bin
+          path: bin/linux
 
       - name: Install dependencies
         run: >-
