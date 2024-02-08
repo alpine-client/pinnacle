@@ -43,6 +43,9 @@ jobs:
           OS: ${{ matrix.os }}
           ARCH: ${{ matrix.arch }}
         run: |
+          # Read version
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+          
           # Add OS-specific flags
           FLAGS="-trimpath"
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
@@ -57,7 +60,6 @@ jobs:
           # Send to env
           echo "FLAGS=${FLAGS}" >> $GITHUB_ENV
           echo "LDFLAGS=${LDFLAGS}" >> $GITHUB_ENV
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
       - name: Build project
         run: >-
@@ -120,7 +122,7 @@ jobs:
           sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ISS_FILE"
           
           # Rename binary
-          mv "bin/pinnacle-windows-latest-${{ matrix.arch }}" "bin/pinnacle-windows-${{ matrix.arch }}.exe"
+          mv "bin/pinnacle" "bin/pinnacle-windows-${{ matrix.arch }}.exe"
 
           # Export env variable
           echo "ISS_FILE=${ISS_FILE}" >> $GITHUB_ENV
@@ -167,12 +169,11 @@ jobs:
           devscripts
           dpkg-dev
 
-      - name: Read version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-
       - name: Prepare for packaging
         run: |
+          # Read version
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+          
           # Edit version in specs/control files
           sed -i "s/^Version:.*/Version: ${VERSION}/" pkg/linux/rpm/SPECS/pinnacle.spec
           sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
@@ -187,8 +188,8 @@ jobs:
           cp -r pkg/linux/deb/* ~/debbuild/alpine-client/
 
           # Copy binaries
-          cp "bin/linux/pinnacle-ubuntu-latest-${{ matrix.arch }}" "~/rpmbuild/SOURCES/pinnacle-linux-${{ matrix.arch }}"
-          cp "bin/linux/pinnacle-ubuntu-latest-${{ matrix.arch }}" ~/debbuild/alpine-client/usr/bin/alpine-client
+          cp "bin/linux/pinnacle" "~/rpmbuild/SOURCES/pinnacle-linux-${{ matrix.arch }}"
+          cp "bin/linux/pinnacle" ~/debbuild/alpine-client/usr/bin/alpine-client
           
           # Make binaries executable
           chmod +x "~/rpmbuild/SOURCES/pinnacle-linux-${{ matrix.arch }}"
