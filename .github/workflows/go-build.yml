@@ -263,10 +263,8 @@ jobs:
         run: |
           # Download AppImage tool
           set -eux
-          url="https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage"
-          sha256="df3baf5ca5facbecfc2f3fa6713c29ab9cefa8fd8c1eac5d283b79cab33e4acb"
+          url="https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
           curl -sSL ${url} -o appimagetool-x86_64.AppImage
-          echo ${sha256} appimagetool-x86_64.AppImage | sha256sum -c -
           chmod a+x appimagetool-x86_64.AppImage
 
           # Set up appbuild file tree
@@ -276,11 +274,11 @@ jobs:
           cp -r pkg/linux/appimage/* ~/appbuild/AlpineClient.AppDir/
           
           # Copy libc and libstdc++ for ChromeOS support
-          cp $(readlink -f /usr/lib/x86_64-linux-gnu/libstdc++.so.6) ~/appbuild/AlpineClient.AppDir/lib/
-          cp $(readlink -f /usr/lib/x86_64-linux-gnu/libc.so.6) ~/appbuild/AlpineClient.AppDir/lib/
+          cp -p $(readlink -f /usr/lib/x86_64-linux-gnu/libstdc++.so.6) ~/appbuild/AlpineClient.AppDir/lib/
+          cp -p $(readlink -f /usr/lib/x86_64-linux-gnu/libc.so.6) ~/appbuild/AlpineClient.AppDir/lib/
 
           # Copy binaries
-          cp bin/linux/pinnacle-linux-amd64 ~/appbuild/AlpineClient.AppDir/alpine-client
+          cp -p bin/linux/pinnacle-linux-amd64 ~/appbuild/AlpineClient.AppDir/alpine-client
           
           # Make binaries executable
           chmod +x ~/appbuild/AlpineClient.AppDir/alpine-client
