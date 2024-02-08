@@ -44,9 +44,11 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: |
           # Add OS-specific flags
-          FLAGS="-trimpath "
+          FLAGS="-trimpath"
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            FLAGS+="-buildmode=pie"
+            FLAGS+=" -buildmode=pie"
+          elif [ "${{ matrix.arch }}" = "windows-latest" ]; then
+            FLAGS+=" -buildmode=pie"
           fi
           
           # Send to env
@@ -55,10 +57,12 @@ jobs:
 
       - name: Build project
         run: >-
+          env
           CGO_ENABLED=0
           GOARCH="${{ matrix.arch }}"
-          go build "${FLAGS}" -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+          go build 
           -o bin/pinnacle
+          "${FLAGS}" -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
           pinnacle/src
 
       - name: Upload artifact
