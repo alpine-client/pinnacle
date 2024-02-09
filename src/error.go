@@ -34,7 +34,7 @@ func HandleFatalError(message string, err error, hub *sentry.Hub) {
 	}
 }
 
-// openURL tries to open the specified URL in the default browser.
+// openSupportWebsite tries to open the specified URL in the default browser.
 func openSupportWebsite() {
 	var err error
 	switch Sys {
