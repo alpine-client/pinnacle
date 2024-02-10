@@ -60,9 +60,6 @@ func BeginLauncher(wg *sync.WaitGroup) {
 	}
 	updateProgress(1)
 
-	HandleFatalError("Failed to create launcher directories", err, hub)
-	updateProgress(1)
-
 	err = DownloadFromUrl(res.Url, targetPath)
 	HandleFatalError("Failed to download launcher", err, hub)
 	updateProgress(1)
