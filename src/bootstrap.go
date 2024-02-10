@@ -109,7 +109,7 @@ func BeginJre(wg *sync.WaitGroup) {
 
 	extractedPath := filepath.Join(basePath, "extracted")
 	err = os.RemoveAll(extractedPath)
-	HandleFatalError("Failed to delete old JRE", err, hub)
+	HandleFatalError("Failed JRE cleanup. Please make sure Alpine Client is not already running.", err, hub)
 	zipArchiver := &archiver.Zip{StripComponents: 1, OverwriteExisting: true}
 	err = zipArchiver.Unarchive(targetPath, extractedPath)
 	HandleFatalError("Failed to unzip JRE", err, hub)
