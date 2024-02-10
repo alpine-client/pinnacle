@@ -122,8 +122,8 @@ func BeginJre(wg *sync.WaitGroup) {
 	HandleFatalError("Failed to write JRE manifest", err, hub)
 	updateProgress(1)
 
-	err = os.Remove(targetPath)
-	HandleFatalError("Failed to delete JRE zip", err, hub)
+	// We can safely ignore this error; failing to delete old zip won't break anything.
+	_ = os.Remove(targetPath)
 	updateProgress(1)
 }
 
