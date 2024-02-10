@@ -15,17 +15,16 @@ import (
 )
 
 var (
-	Version    string
 	Sys        OperatingSystem
 	Arch       Architecture
 	WorkingDir string
-
-	logo *giu.Texture
+	version    string
+	logo       *giu.Texture
 )
 
 func main() {
 
-	StartSentry(Version)
+	StartSentry(version)
 	hub := CreateSentryHub("main")
 	defer sentry.Flush(2 * time.Second)
 
@@ -87,8 +86,8 @@ func runTasks(window *giu.MasterWindow) {
 			jarPath,
 		)
 
-		if Version != "" {
-			args = append(args, "--pinnacle-version", Version)
+		if version != "" {
+			args = append(args, "--pinnacle-version", version)
 		}
 
 		processAttr := &os.ProcAttr{

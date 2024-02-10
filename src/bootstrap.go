@@ -60,9 +60,6 @@ func BeginLauncher(wg *sync.WaitGroup) {
 	}
 	updateProgress(1)
 
-	HandleFatalError("Failed to create launcher directories", err, hub)
-	updateProgress(1)
-
 	err = DownloadFromUrl(res.Url, targetPath)
 	HandleFatalError("Failed to download launcher", err, hub)
 	updateProgress(1)
@@ -109,8 +106,8 @@ func BeginJre(wg *sync.WaitGroup) {
 
 	extractedPath := filepath.Join(basePath, "extracted")
 	err = os.RemoveAll(extractedPath)
-	HandleFatalError("Failed to delete old JRE", err, hub)
-	zipArchiver := &archiver.Zip{StripComponents: 1}
+	HandleFatalError("Failed JRE cleanup. Please make sure Alpine Client is not already running.", err, hub)
+	zipArchiver := &archiver.Zip{StripComponents: 1, OverwriteExisting: true}
 	err = zipArchiver.Unarchive(targetPath, extractedPath)
 	HandleFatalError("Failed to unzip JRE", err, hub)
 	updateProgress(1)
@@ -122,8 +119,8 @@ func BeginJre(wg *sync.WaitGroup) {
 	HandleFatalError("Failed to write JRE manifest", err, hub)
 	updateProgress(1)
 
-	err = os.Remove(targetPath)
-	HandleFatalError("Failed to delete JRE zip", err, hub)
+	// We can safely ignore this error; failing to delete old zip won't break anything.
+	_ = os.Remove(targetPath)
 	updateProgress(1)
 }
 

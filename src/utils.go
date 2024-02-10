@@ -65,7 +65,7 @@ func GetFromUrl(url string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Set("User-Agent", fmt.Sprintf("Pinnacle/%s (%s; %s)", Version, Sys, Arch))
+	request.Header.Set("User-Agent", fmt.Sprintf("Pinnacle/%s (%s; %s)", version, Sys, Arch))
 
 	// Perform the HTTP request
 	response, err := client.Do(request)
@@ -82,19 +82,19 @@ func GetFromUrl(url string) (io.ReadCloser, error) {
 }
 
 func DownloadFromUrl(url string, path string) error {
-	// Create or truncate the file
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
 	// Perform the HTTP request
 	body, err := GetFromUrl(url)
 	if err != nil {
 		return err
 	}
 	defer body.Close()
+
+	// Create or truncate the file
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
 
 	// Copy response body to file
 	_, err = io.Copy(file, body)
