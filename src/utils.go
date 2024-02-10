@@ -82,19 +82,19 @@ func GetFromUrl(url string) (io.ReadCloser, error) {
 }
 
 func DownloadFromUrl(url string, path string) error {
-	// Create or truncate the file
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
 	// Perform the HTTP request
 	body, err := GetFromUrl(url)
 	if err != nil {
 		return err
 	}
 	defer body.Close()
+
+	// Create or truncate the file
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
 
 	// Copy response body to file
 	_, err = io.Copy(file, body)
