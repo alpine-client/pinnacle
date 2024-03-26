@@ -2,12 +2,13 @@ name: Build and Package
 
 on:
   push:
+    tags:
+      - "*.*.*"
     branches:
-      - 'release'
       - 'test/**'
 
 permissions:
-  contents: read
+  contents: write
 
 defaults:
   run:
@@ -60,10 +61,6 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - name: Read version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-
       - name: Set up Zig
         run: |
           PATH=/usr/local/zig:${PATH}
@@ -85,7 +82,7 @@ jobs:
           env
           GOARCH=amd64
           go build -trimpath
-          -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+          -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
           -o bin/linux/pinnacle-linux-amd64
           pinnacle/src
 
@@ -96,7 +93,7 @@ jobs:
 #          CC="zig cc -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
 #          CXX="zig c++ -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
 #          go build -trimpath
-#          -ldflags="-X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+#          -ldflags="-X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
 #          -o bin/linux/pinnacle-linux-arm64
 #          pinnacle/src
 
@@ -112,7 +109,7 @@ jobs:
           CC="zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
           CXX="zig c++ -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
           go build -trimpath
-          -ldflags="-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+          -ldflags="-H=windowsgui -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
           -o bin/windows/pinnacle-windows-amd64.exe
           pinnacle/src
 
@@ -124,7 +121,7 @@ jobs:
 #          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
 #          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
 #          go build -trimpath
-#          -ldflags "-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+#          -ldflags "-H=windowsgui -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
 #          -o bin/windows/pinnacle-windows-arm64.exe
 #          pinnacle/src
 
@@ -149,17 +146,13 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - name: Read version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-
       - name: Build for amd64
         run: >-
           env
           GOARCH=amd64
           GOOS=darwin
           go build -trimpath -buildmode=pie
-          -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+          -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
           -o bin/darwin/pinnacle-darwin-amd64
           pinnacle/src
 
@@ -169,7 +162,7 @@ jobs:
           GOARCH=arm64
           GOOS=darwin
           go build -trimpath -buildmode=pie
-          -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+          -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
           -o bin/darwin/pinnacle-darwin-arm64
           pinnacle/src
 
@@ -189,17 +182,12 @@ jobs:
         with:
           sparse-checkout: |
             pkg/windows
-            VERSION
 
       - name: Download binaries
         uses: actions/download-artifact@v4
         with:
           name: windows-linux-binaries
           path: bin
-
-      - name: Read version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
       - name: Prepare for packaging
         run: |
@@ -208,8 +196,8 @@ jobs:
           # ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
 
           # Edit versions in iss files
-          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
-          # sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
+          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${{ github.ref_name }}\"/" "$AMD_ISS"
+          # sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${{ github.ref_name }}\"/" "$ARM_ISS"
 
           # Export env variables
           echo "AMD_ISS=${AMD_ISS}" >> $GITHUB_ENV
@@ -236,7 +224,6 @@ jobs:
         with:
           sparse-checkout: |
             pkg/linux
-            VERSION
 
       - name: Download binaries
         uses: actions/download-artifact@v4
@@ -253,16 +240,12 @@ jobs:
           devscripts
           dpkg-dev
 
-      - name: Read version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-
       - name: Prepare for packaging
         run: |
           # Edit version in specs/control files
-          sed -i "s/^Version:.*/Version: ${VERSION}/" pkg/linux/rpm/SPECS/pinnacle.spec
+          sed -i "s/^Version:.*/Version: ${{ github.ref_name }}/" pkg/linux/rpm/SPECS/pinnacle.spec
           sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
-          sed -i "s/^Version:.*/Version: ${VERSION}-${RELEASE}/" pkg/linux/deb/DEBIAN/control
+          sed -i "s/^Version:.*/Version: ${{ github.ref_name }}-${RELEASE}/" pkg/linux/deb/DEBIAN/control
 
           # Set up rpmbuild/debbuild file tree
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
@@ -294,7 +277,7 @@ jobs:
         run: >-
           dpkg-deb -Zgzip
           --build ~/debbuild/alpine-client
-          "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
+          "build/out/alpine-client_${{ github.ref_name }}-${RELEASE}_amd64.deb"
 
 #      - name: Swap binaries
 #        run: |
@@ -325,7 +308,7 @@ jobs:
 #        run: >-
 #          dpkg-deb -Zgzip
 #          --build ~/debbuild/alpine-client
-#          "build/out/alpine-client_${VERSION}-${RELEASE}_arm64.deb"
+#          "build/out/alpine-client_${{ github.ref_name }}-${RELEASE}_arm64.deb"
 
       - name: Tidy artifact
         run: |
@@ -350,17 +333,12 @@ jobs:
         with:
           sparse-checkout: |
             pkg/darwin
-            VERSION
 
       - name: Download binaries
         uses: actions/download-artifact@v4
         with:
           name: macos-binaries
           path: bin
-
-      - name: Read version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
       - name: Set up environment
         run: |
@@ -372,7 +350,7 @@ jobs:
           mkdir -p build/out/
 
           # Replace version in Info.plist files
-          sed -i '' "s/<string>1.0.0<\/string>/<string>${VERSION}<\/string>/" "${APP}/Info.plist"
+          sed -i '' "s/<string>1.0.0<\/string>/<string>${{ github.ref_name }}<\/string>/" "${APP}/Info.plist"
 
           # Move compiled binary
           cp bin/pinnacle-darwin-amd64 "${APP}/MacOS/pinnacle-darwin-amd64"
@@ -388,9 +366,9 @@ jobs:
           pkgbuild
           --root pkg/darwin
           --identifier com.alpineclient.pinnacle
-          --version "$VERSION"
+          --version "${{ github.ref_name }}"
           --install-location /Applications
-          "build/out/AlpineClientSetup-${VERSION}-x86_64.pkg"
+          "build/out/AlpineClientSetup-${{ github.ref_name }}-x86_64.pkg"
 
       - name: Swap and64 binary for arm64
         run: |
@@ -404,9 +382,9 @@ jobs:
           pkgbuild
           --root pkg/darwin
           --identifier com.alpineclient.pinnacle
-          --version "$VERSION"
+          --version "${{ github.ref_name }}"
           --install-location /Applications
-          "build/out/AlpineClientSetup-${VERSION}-ARM64.pkg"
+          "build/out/AlpineClientSetup-${{ github.ref_name }}-ARM64.pkg"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
