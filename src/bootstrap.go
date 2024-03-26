@@ -18,7 +18,7 @@ const TotalTasks = 13
 
 var CompletedTasks = 0
 
-type response struct {
+type metadataResponse struct {
 	Url  string `json:"url"`
 	Hash string `json:"sha1"`
 	Size uint32 `json:"size"`
@@ -40,16 +40,17 @@ func BeginLauncher(wg *sync.WaitGroup) {
 	defer body.Close()
 	updateProgress(1)
 
-	var res response
+	var res metadataResponse
 	err = json.NewDecoder(body).Decode(&res)
 	HandleFatalError("Failed to deserialize launcher information", err, hub)
 	updateProgress(1)
 
 	if FileExists(targetPath) {
-		if file, err := os.Open(targetPath); err == nil {
+		var file *os.File
+		if file, err = os.Open(targetPath); err == nil {
 			defer file.Close()
 			sha := sha1.New()
-			if _, err := io.Copy(sha, file); err == nil {
+			if _, err = io.Copy(sha, file); err == nil {
 				hash := hex.EncodeToString(sha.Sum(nil))
 				if hash == res.Hash {
 					updateProgress(3)
@@ -81,15 +82,16 @@ func BeginJre(wg *sync.WaitGroup) {
 	defer body.Close()
 	updateProgress(1)
 
-	var res response
+	var res metadataResponse
 	err = json.NewDecoder(body).Decode(&res)
 	HandleFatalError("Failed to deserialize JRE information", err, hub)
 	updateProgress(1)
 
 	if FileExists(manifestPath) {
 		var manifest jreManifest
-		if bytes, err := os.ReadFile(manifestPath); err == nil {
-			if err := json.Unmarshal(bytes, &manifest); err == nil {
+		var bytes []byte
+		if bytes, err = os.ReadFile(manifestPath); err == nil {
+			if err = json.Unmarshal(bytes, &manifest); err == nil {
 				if manifest.Hash == res.Hash {
 					updateProgress(5)
 					return
