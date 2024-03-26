@@ -55,7 +55,7 @@ func GetFromUrl(url string) (io.ReadCloser, error) {
 	client := http.Client{
 		Transport: &http.Transport{
 			DialContext: (&net.Dialer{
-				Timeout: 10 * time.Second,
+				Timeout: 30 * time.Second,
 			}).DialContext,
 		},
 	}
