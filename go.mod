@@ -1,6 +1,6 @@
 module pinnacle
 
-go 1.21.6
+go 1.22
 
 require (
 	github.com/AllenDang/giu v0.7.0
@@ -30,10 +30,10 @@ require (
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
 	github.com/sahilm/fuzzy v0.1.1 // indirect
-	github.com/ulikunitz/xz v0.5.11 // indirect
+	github.com/ulikunitz/xz v0.5.12 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	golang.org/x/image v0.15.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/eapache/queue.v1 v1.1.0 // indirect
 )
