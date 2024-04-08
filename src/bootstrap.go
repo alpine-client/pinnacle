@@ -129,7 +129,11 @@ func BeginJre(wg *sync.WaitGroup) {
 	updateProgress(1)
 }
 
+var mutex sync.Mutex
+
 func updateProgress(steps int) {
+	mutex.Lock()
 	CompletedTasks += steps
 	giu.Update()
+	mutex.Unlock()
 }
