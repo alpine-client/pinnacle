@@ -72,7 +72,7 @@ func runTasks(window *giu.MasterWindow) {
 		jarPath := filepath.Join(WorkingDir, "launcher.jar")
 		jrePath := filepath.Join(WorkingDir, "jre", "17", "extracted", "bin", Sys.JavaExecutable())
 
-		args := []string{jrePath}
+		var args []string
 
 		if Sys == Mac {
 			args = append(args, "-XstartOnFirstThread")
