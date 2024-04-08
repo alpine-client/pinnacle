@@ -32,7 +32,7 @@ func main() {
 	WorkingDir = getAlpinePath()
 
 	err := os.MkdirAll(WorkingDir, os.ModePerm)
-	HandleFatalError("Failed to create working directory", err, hub)
+	CaptureAndExit(err, hub)
 
 	window := giu.NewMasterWindow(
 		"Alpine Client Updater",
@@ -45,11 +45,11 @@ func main() {
 
 	// Load textures
 	img, err := loadImage(IconBytes)
-	HandleFatalError("Failed to decode texture", err, hub)
+	CaptureAndExit(err, hub)
 	window.SetIcon([]image.Image{img})
 
 	img, err = loadImage(LogoBytes)
-	HandleFatalError("Failed to decode texture", err, hub)
+	CaptureAndExit(err, hub)
 	giu.NewTextureFromRgba(img, func(tex *giu.Texture) {
 		logo = tex
 	})
@@ -96,10 +96,10 @@ func runTasks(window *giu.MasterWindow) {
 		}
 
 		proc, err := os.StartProcess(jrePath, args, processAttr)
-		HandleFatalError("Failed to start launcher process", err, hub)
+		CaptureAndExit(err, hub)
 
 		err = proc.Release()
-		HandleFatalError("Failed to detach launcher process", err, hub)
+		CaptureAndExit(err, hub)
 
 		window.SetShouldClose(true)
 	}()

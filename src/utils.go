@@ -26,6 +26,10 @@ func SystemInformation() (OperatingSystem, Architecture) {
 	default:
 		err = errors.New("unsupported operating system")
 	}
+	if err != nil {
+		hub := CreateSentryHub("SystemInformation")
+		CaptureAndExit(err, hub)
+	}
 
 	switch runtime.GOARCH {
 	case "amd64":
@@ -35,10 +39,9 @@ func SystemInformation() (OperatingSystem, Architecture) {
 	default:
 		err = errors.New("unsupported system architecture")
 	}
-
 	if err != nil {
 		hub := CreateSentryHub("SystemInformation")
-		HandleFatalError("Unsupported platform", err, hub) // this call exists program
+		CaptureAndExit(err, hub)
 	}
 	return sys, arch
 }
