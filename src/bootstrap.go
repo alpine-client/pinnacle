@@ -35,8 +35,11 @@ func FetchMetadata(url string) *MetadataResponse {
 	ctx := CreateSentryCtx("FetchMetadata")
 	body, err := GetFromUrl(url)
 	CrumbCaptureExit(ctx, err, "making request to "+url)
-	defer body.Close()
-
+	defer func() {
+		if err = body.Close(); err != nil {
+			CrumbCaptureExit(CreateSentryCtx("FetchMetadata"), err, "closing request body")
+		}
+	}()
 	var res MetadataResponse
 	err = json.NewDecoder(body).Decode(&res)
 	CrumbCaptureExit(ctx, err, "decoding response from "+url)
@@ -48,7 +51,11 @@ func FileHashMatches(hash string, path string) bool {
 	if err != nil {
 		return false
 	}
-	defer file.Close()
+	defer func() {
+		if err = file.Close(); err != nil {
+			CrumbCaptureExit(CreateSentryCtx("FileHashMatches"), err, "closing file")
+		}
+	}()
 	sha := sha1.New()
 	if _, err = io.Copy(sha, file); err != nil {
 		return false
