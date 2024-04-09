@@ -106,7 +106,7 @@ func BeginJre(wg *sync.WaitGroup) {
 	updateProgress(1)
 	data, err = os.ReadFile(manifestPath)
 	if err != nil {
-		AddBreadcrumb(ctx, "failed to manifest file")
+		AddBreadcrumb(ctx, "failed to read manifest file")
 		goto DOWNLOAD
 	}
 
