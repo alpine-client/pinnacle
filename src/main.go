@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"image"
 	"image/color"
 	"image/png"
@@ -21,6 +22,9 @@ var (
 	version    string
 	logo       *giu.Texture
 )
+
+//go:embed assets/*
+var assets embed.FS
 
 func main() {
 
@@ -44,11 +48,11 @@ func main() {
 	runTasks(window)
 
 	// Load textures
-	img, err := loadImage(IconBytes)
+	img, err := loadImage("assets/icon.png")
 	CrumbCaptureExit(ctx, err, "loading icon textures")
 	window.SetIcon([]image.Image{img})
 
-	img, err = loadImage(LogoBytes)
+	img, err = loadImage("assets/logo.png")
 	CrumbCaptureExit(ctx, err, "loading logo textures")
 	giu.NewTextureFromRgba(img, func(tex *giu.Texture) {
 		logo = tex
@@ -118,9 +122,12 @@ func drawUI() {
 	PopStyle()
 }
 
-func loadImage(data []uint8) (image.Image, error) {
-	img, err := png.Decode(bytes.NewReader(data))
-	return img, err
+func loadImage(path string) (image.Image, error) {
+	data, err := assets.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return png.Decode(bytes.NewReader(data))
 }
 
 func scaleDivider(value float32) float32 {
