@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -22,15 +23,33 @@ func isBadRecordMacErr(err error) bool {
 	return strings.Contains(unwrappedErr.Error(), "tls: bad record MAC")
 }
 
-// CaptureAndExit sends the error to sentry and displays a pop-up for the user
+func AddBreadcrumb(ctx context.Context, desc string, level ...sentry.Level) {
+	var lvl sentry.Level
+	if len(level) == 0 {
+		lvl = sentry.LevelInfo
+	} else {
+		lvl = level[0]
+	}
+	hub := sentry.GetHubFromContext(ctx)
+	hub.AddBreadcrumb(&sentry.Breadcrumb{
+		Category: ctx.Value("task").(string),
+		Message:  desc,
+		Level:    lvl,
+	}, nil)
+}
+
+// CrumbCaptureExit sends the error to sentry and displays a pop-up for the user
 // Ensures that only the first pop-up displays in the event of multiple errors.
-func CaptureAndExit(err error, hub *sentry.Hub) {
+// Also adds a breadcrumb to the provided hub.
+func CrumbCaptureExit(ctx context.Context, err error, desc string) {
 	if err == nil {
+		AddBreadcrumb(ctx, desc, sentry.LevelInfo)
 		return
 	}
 
 	// Send error to sentry
-	eventID := hub.CaptureException(err)
+	AddBreadcrumb(ctx, desc, sentry.LevelError)
+	eventID := sentry.GetHubFromContext(ctx).CaptureException(err)
 	errID := *eventID
 	message := err.Error()
 

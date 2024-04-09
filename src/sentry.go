@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/getsentry/sentry-go"
 	"os"
 	"runtime"
@@ -18,7 +19,7 @@ func StartSentry(release string) {
 	}
 }
 
-func CreateSentryHub(task string) *sentry.Hub {
+func CreateSentryCtx(task string) context.Context {
 	name, _ := os.Hostname()
 	localHub := sentry.CurrentHub().Clone()
 	localHub.ConfigureScope(func(scope *sentry.Scope) {
@@ -26,6 +27,8 @@ func CreateSentryHub(task string) *sentry.Hub {
 		scope.SetTag("OS", runtime.GOOS)
 		scope.SetTag("Arch", runtime.GOARCH)
 		scope.SetUser(sentry.User{Name: name})
+		scope.SetLevel(sentry.LevelInfo)
 	})
-	return localHub
+	ctx := context.WithValue(context.Background(), "task", task)
+	return sentry.SetHubOnContext(ctx, localHub)
 }

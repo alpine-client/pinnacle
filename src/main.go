@@ -25,14 +25,14 @@ var (
 func main() {
 
 	StartSentry(version)
-	hub := CreateSentryHub("main")
+	ctx := CreateSentryCtx("main")
 	defer sentry.Flush(2 * time.Second)
 
 	Sys, Arch = SystemInformation()
 	WorkingDir = getAlpinePath()
 
 	err := os.MkdirAll(WorkingDir, os.ModePerm)
-	CaptureAndExit(err, hub)
+	CrumbCaptureExit(ctx, err, "mkdir "+WorkingDir)
 
 	window := giu.NewMasterWindow(
 		"Alpine Client Updater",
@@ -45,11 +45,11 @@ func main() {
 
 	// Load textures
 	img, err := loadImage(IconBytes)
-	CaptureAndExit(err, hub)
+	CrumbCaptureExit(ctx, err, "loading icon textures")
 	window.SetIcon([]image.Image{img})
 
 	img, err = loadImage(LogoBytes)
-	CaptureAndExit(err, hub)
+	CrumbCaptureExit(ctx, err, "loading logo textures")
 	giu.NewTextureFromRgba(img, func(tex *giu.Texture) {
 		logo = tex
 	})
@@ -68,7 +68,7 @@ func runTasks(window *giu.MasterWindow) {
 	go func() {
 		wg.Wait()
 
-		hub := CreateSentryHub("runTasks") // wasn't sure what to name it
+		ctx := CreateSentryCtx("runTasks")
 		jarPath := filepath.Join(WorkingDir, "launcher.jar")
 		jrePath := filepath.Join(WorkingDir, "jre", "17", "extracted", "bin", Sys.JavaExecutable())
 
@@ -96,10 +96,10 @@ func runTasks(window *giu.MasterWindow) {
 		}
 
 		proc, err := os.StartProcess(jrePath, args, processAttr)
-		CaptureAndExit(err, hub)
+		CrumbCaptureExit(ctx, err, "starting launcher process")
 
 		err = proc.Release()
-		CaptureAndExit(err, hub)
+		CrumbCaptureExit(ctx, err, "releasing launcher process")
 
 		window.SetShouldClose(true)
 	}()
