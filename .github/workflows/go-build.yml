@@ -2,10 +2,8 @@ name: Build and Package
 
 on:
   push:
-    tags:
-      - "*.*.*"
     branches:
-      - 'test/**'
+      - 'no-cgo'
 
 permissions:
   contents: write
@@ -17,126 +15,15 @@ defaults:
 env:
   RELEASE: ${{ github.run_number }}
   SENTRY: ${{ secrets.SENTRY_DSN }}
+  VERSION: '1.3.3c'
 
 jobs:
-  build_windows_linux:
-    runs-on: ubuntu-latest
-    env:
-      CGO_ENABLED: 1
-      ZIG_VERSION: 0.11.0
-      ZIG_SHA256: 2d00e789fec4f71790a6e7bf83ff91d564943c5ee843c5fd966efc474b423047
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-#      - name: Add Arm64 repository
-#        run: |
-#          sudo sed -i -E 's|^deb ([^ ]+) (.*)$|deb [arch=amd64] \1 \2\ndeb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ \2|' /etc/apt/sources.list
-#          sudo dpkg --add-architecture arm64
-
-      - name: Install dependencies
-        run: >-
-          sudo apt-get update &&
-          sudo apt-get install -y
-          libgl-dev
-          libx11-dev
-          libxrandr-dev
-          libxxf86vm-dev
-          libxi-dev
-          libxcursor-dev
-          libxinerama-dev
-          libxkbcommon-dev
-#          libgl-dev:arm64
-#          libx11-dev:arm64
-#          libxrandr-dev:arm64
-#          libxxf86vm-dev:arm64
-#          libxi-dev:arm64
-#          libxcursor-dev:arm64
-#          libxinerama-dev:arm64
-#          libxkbcommon-dev:arm64
-
-      - name: Set up Go
-        uses: WillAbides/setup-go-faster@v1.14.0
-        with:
-          go-version-file: 'go.mod'
-
-      - name: Set up Zig
-        run: |
-          PATH=/usr/local/zig:${PATH}
-          echo "PATH=${PATH}" >> $GITHUB_ENV
-
-          set -eux
-          url="https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz"
-          sha256="${ZIG_SHA256}"
-
-          curl -sSL ${url} -o zig.tar.xz
-          echo ${sha256} zig.tar.xz | sha256sum -c -
-          sudo tar -C /usr/local -Jxvf zig.tar.xz
-          sudo mv /usr/local/zig-* /usr/local/zig
-          rm zig.tar.xz
-          zig version
-
-      - name: Build for Linux (amd64)
-        run: >-
-          env
-          GOARCH=amd64
-          go build -trimpath
-          -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
-          -o bin/linux/pinnacle-linux-amd64
-          pinnacle/src
-
-#      - name: Build for Linux (arm64)
-#        run: >-
-#          env
-#          GOARCH=arm64
-#          CC="zig cc -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
-#          CXX="zig c++ -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
-#          go build -trimpath
-#          -ldflags="-X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
-#          -o bin/linux/pinnacle-linux-arm64
-#          pinnacle/src
-
-      - name: Copy syso files
-        run: |
-          cp -r pkg/windows/syso/* src/
-
-      - name: Build for Windows (amd64)
-        run: >-
-          env
-          GOARCH=amd64
-          GOOS=windows
-          CC="zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-          CXX="zig c++ -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-          go build -trimpath
-          -ldflags="-H=windowsgui -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
-          -o bin/windows/pinnacle-windows-amd64.exe
-          pinnacle/src
-
-#      - name: Build for Windows (arm64)
-#        run: >-
-#          env
-#          GOARCH=arm64
-#          GOOS=windows
-#          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-#          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-#          go build -trimpath
-#          -ldflags "-H=windowsgui -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
-#          -o bin/windows/pinnacle-windows-arm64.exe
-#          pinnacle/src
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-linux-binaries
-          path: bin
-          retention-days: 1
-
-  build_macos:
-    runs-on: macos-latest
-    env:
-      CGO_ENABLED: 1
-
+  build:
+    strategy:
+      matrix:
+        os: [ windows-latest ]
+        arch: [ amd64 ]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -146,36 +33,51 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - name: Build for amd64
-        run: >-
-          env
-          GOARCH=amd64
-          GOOS=darwin
-          go build -trimpath -buildmode=pie
-          -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
-          -o bin/darwin/pinnacle-darwin-amd64
-          pinnacle/src
+      - name: Prepare environment
+        env:
+          OS: ${{ matrix.os }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          # Add OS-specific flags
+          FLAGS="-trimpath"
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+          FLAGS+=" -buildmode=pie"
+          fi
+          
+          LDFLAGS="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+          # if [ "${{ matrix.arch }}" = "windows-latest" ]; then
+          # LDFLAGS+=" -H=windowsgui"
+          # fi
+          
+          # Send to env
+          echo "FLAGS=${FLAGS}" >> $GITHUB_ENV
+          echo "LDFLAGS=${LDFLAGS}" >> $GITHUB_ENV
 
-      - name: Build for arm64
-        run: >-
-          env
-          GOARCH=arm64
-          GOOS=darwin
-          go build -trimpath -buildmode=pie
-          -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
-          -o bin/darwin/pinnacle-darwin-arm64
-          pinnacle/src
+          - name: Build project
+            run: >-
+              env
+              CGO_ENABLED=0
+              GOARCH="${{ matrix.arch }}"
+              go build 
+              -o bin/pinnacle
+              ${FLAGS} -ldflags="${LDFLAGS}"
+              pinnacle/src
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-binaries
-          path: bin/darwin
+          name: pinnacle-${{ matrix.os }}-${{ matrix.arch }}
+          path: bin/pinnacle
           retention-days: 1
 
   package_windows:
+    needs: build
+    strategy:
+      matrix:
+        arch: [ amd64, arm64 ]
+        exclude:
+          - arch: arm64
     runs-on: windows-latest
-    needs: build_windows_linux
     steps:
       - name: Checkout .iss files
         uses: actions/checkout@v4
@@ -186,239 +88,42 @@ jobs:
       - name: Download binaries
         uses: actions/download-artifact@v4
         with:
-          name: windows-linux-binaries
-          path: bin
+          name: pinnacle-windows-latest-${{ matrix.arch }}
+          path: bin/windows
+
+      - name: Set env variables
+        run: |
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            ARCH_NAME="x86_64"
+          elif [ "${{ matrix.arch }}" = "arm64" ]; then
+            ARCH_NAME="ARM64"
+          else
+            ARCH_NAME="???"
+          fi
+          
+          echo "ARCH_NAME=${ARCH_NAME}" >> $GITHUB_ENV
 
       - name: Prepare for packaging
         run: |
-          # Set variables for .iss file paths
-          AMD_ISS=pkg/windows/iss/PackagePinnacle-amd64.iss
-          # ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
-
-          # Edit versions in iss files
-          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${{ github.ref_name }}\"/" "$AMD_ISS"
-          # sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${{ github.ref_name }}\"/" "$ARM_ISS"
-
-          # Export env variables
-          echo "AMD_ISS=${AMD_ISS}" >> $GITHUB_ENV
-          # echo "ARM_ISS=${ARM_ISS}" >> $GITHUB_ENV
+          # Set variable for .iss file path
+          ISS_FILE="pkg/windows/iss/PackagePinnacle-${{ matrix.arch }}.iss"
+          
+          # Edit versions in iss file
+          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ISS_FILE"
+          
+          # Rename binary
+          mv "bin/windows/pinnacle" "bin/windows/pinnacle-windows-${{ matrix.arch }}.exe"
+          
+          # Export env variable
+          echo "ISS_FILE=${ISS_FILE}" >> $GITHUB_ENV
 
       - name: Package with Inno Setup
         run: |
-          iscc.exe "$AMD_ISS"
-          # iscc.exe "$ARM_ISS"
+          iscc.exe "$ISS_FILE"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-installers
-          path: build/out
+          name: AlpineClientSetup-${{ env.VERSION }}-${{ env.ARCH_NAME }}.exe
+          path: build/out/AlpineClientSetup-${{ env.VERSION }}-${{ env.ARCH_NAME }}.exe
           retention-days: 1
-
-  package_linux:
-    runs-on: [ ubuntu-latest ]
-    needs: build_windows_linux
-    steps:
-      - name: Checkout pkg files
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            pkg/linux
-
-      - name: Download binaries
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-linux-binaries
-          path: bin
-
-      - name: Install dependencies
-        run: >-
-          sudo apt-get update &&
-          sudo apt-get install -y
-          rpm
-          debhelper
-          devscripts
-          dpkg-dev
-
-      - name: Prepare for packaging
-        run: |
-          # Edit version in specs/control files
-          sed -i "s/^Version:.*/Version: ${{ github.ref_name }}/" pkg/linux/rpm/SPECS/pinnacle.spec
-          sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
-          sed -i "s/^Version:.*/Version: ${{ github.ref_name }}-${RELEASE}/" pkg/linux/deb/DEBIAN/control
-
-          # Set up rpmbuild/debbuild file tree
-          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-          mkdir -p ~/debbuild/alpine-client/{DEBIAN,usr/bin,usr/share/applications,usr/share/pixmaps}
-
-          # Copy resources
-          cp -r pkg/linux/rpm/* ~/rpmbuild/
-          cp -r pkg/linux/deb/* ~/debbuild/alpine-client/
-
-          # Copy binaries
-          cp bin/linux/pinnacle-linux-amd64 ~/rpmbuild/SOURCES/
-          cp bin/linux/pinnacle-linux-amd64 ~/debbuild/alpine-client/usr/bin/alpine-client
-          
-          # Make binaries executable
-          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-amd64
-          chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
-
-          # Create output folder
-          mkdir -p build/out
-
-      - name: Package .rpm (amd64)
-        run: >-
-          rpmbuild -bb
-          ~/rpmbuild/SPECS/pinnacle.spec
-          --define "_rpmdir build/out"
-          --target=x86_64
-
-      - name: Package .deb (amd64)
-        run: >-
-          dpkg-deb -Zgzip
-          --build ~/debbuild/alpine-client
-          "build/out/alpine-client_${{ github.ref_name }}-${RELEASE}_amd64.deb"
-
-#      - name: Swap binaries
-#        run: |
-#          # Remove amd64 binaries
-#          rm -f ~/rpmbuild/SOURCES/pinnacle-darwin-amd64
-#          rm -f ~/debbuild/alpine-client/usr/bin/alpine-client
-#
-#          # Edit arch & binary name in spec/control files
-#          sed -i -e 's/linux-amd64/linux-arm64/g' -e 's/x86_64/aarch64/g' ~/rpmbuild/SPECS/pinnacle.spec
-#          sed -i 's/amd64/arm64/g' ~/debbuild/alpine-client/DEBIAN/control
-#
-#          # Copy arm64 binaries
-#          cp bin/linux/pinnacle-linux-arm64 ~/rpmbuild/SOURCES/
-#          cp bin/linux/pinnacle-linux-arm64 ~/debbuild/alpine-client/usr/bin/alpine-client
-#
-#          # Make binaries executable
-#          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-arm64
-#          chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
-#
-#      - name: Package .rpm (arm64)
-#        run: >-
-#          rpmbuild -bb
-#          ~/rpmbuild/SPECS/pinnacle.spec
-#          --define "_rpmdir build/out"
-#          --target=aarch64
-#
-#      - name: Package .deb (arm64)
-#        run: >-
-#          dpkg-deb -Zgzip
-#          --build ~/debbuild/alpine-client
-#          "build/out/alpine-client_${{ github.ref_name }}-${RELEASE}_arm64.deb"
-
-      - name: Tidy artifact
-        run: |
-          cp -r build/out/x86_64/* build/out/
-          rm -rf build/out/x86_64
-          # cp -r build/out/aarch64/* build/out/
-          # rm -rf build/out/aarch64
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-installers
-          path: build/out
-          retention-days: 1
-
-  package_macos:
-    runs-on: macos-latest
-    needs: build_macos
-    steps:
-      - name: Checkout pkg/darwin
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            pkg/darwin
-
-      - name: Download binaries
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-binaries
-          path: bin
-
-      - name: Set up environment
-        run: |
-          # Set env variables for paths
-          APP="pkg/darwin/Alpine Client.app/Contents"
-
-          # Create necessary folders
-          mkdir "${APP}/MacOS"
-          mkdir -p build/out/
-
-          # Replace version in Info.plist files
-          sed -i '' "s/<string>1.0.0<\/string>/<string>${{ github.ref_name }}<\/string>/" "${APP}/Info.plist"
-
-          # Move compiled binary
-          cp bin/pinnacle-darwin-amd64 "${APP}/MacOS/pinnacle-darwin-amd64"
-
-          # Set permissions
-          chmod +x "${APP}/MacOS/pinnacle-darwin-amd64"
-
-          # Export APP env for later
-          echo "APP=${APP}" >> $GITHUB_ENV
-
-      - name: Package for amd64
-        run: >-
-          pkgbuild
-          --root pkg/darwin
-          --identifier com.alpineclient.pinnacle
-          --version "${{ github.ref_name }}"
-          --install-location /Applications
-          "build/out/AlpineClientSetup-${{ github.ref_name }}-x86_64.pkg"
-
-      - name: Swap and64 binary for arm64
-        run: |
-          rm -f "${APP}/MacOS/pinnacle-darwin-amd64"
-          cp bin/pinnacle-darwin-arm64 "${APP}/MacOS/pinnacle-darwin-arm64"
-          sed -i '' 's/amd64/arm64/g' "${APP}/Info.plist"
-          chmod +x "${APP}/MacOS/pinnacle-darwin-arm64"
-
-      - name: Package for arm64
-        run: >-
-          pkgbuild
-          --root pkg/darwin
-          --identifier com.alpineclient.pinnacle
-          --version "${{ github.ref_name }}"
-          --install-location /Applications
-          "build/out/AlpineClientSetup-${{ github.ref_name }}-ARM64.pkg"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-installers
-          path: build/out
-          retention-days: 1
-
-  merge_artifacts:
-    needs: [ package_windows, package_linux, package_macos ]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download
-        uses: actions/download-artifact@v4
-        with:
-          path: all
-
-      - name: Reorganize
-        run: |
-          mkdir -p merged/{binaries,installers}
-
-          # Combine binaries
-          cp -r all/windows-linux-binaries/*/ merged/binaries/
-          cp -r all/macos-binaries/* merged/binaries/
-
-          # Combine installers
-          cp -r all/windows-installers/* merged/installers/
-          cp -r all/macos-installers/* merged/installers/
-          cp -r all/linux-installers/* merged/installers/
-
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: all-artifacts-${{ env.RELEASE }}
-          path: merged
-          compression-level: 9
-          retention-days: 90

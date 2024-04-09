@@ -1,18 +1,12 @@
 package main
 
 import (
-	"bytes"
-	"embed"
-	"image"
-	"image/color"
-	"image/png"
+	"github.com/getsentry/sentry-go"
+	"github.com/ncruces/zenity"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
-
-	"github.com/AllenDang/giu"
-	"github.com/getsentry/sentry-go"
 )
 
 var (
@@ -20,11 +14,7 @@ var (
 	Arch       Architecture
 	WorkingDir string
 	version    string
-	logo       *giu.Texture
 )
-
-//go:embed assets/*
-var assets embed.FS
 
 func main() {
 
@@ -38,31 +28,24 @@ func main() {
 	err := os.MkdirAll(WorkingDir, os.ModePerm)
 	CrumbCaptureExit(ctx, err, "mkdir "+WorkingDir)
 
-	window := giu.NewMasterWindow(
-		"Alpine Client Updater",
-		WindowWidth, WindowHeight,
-		giu.MasterWindowFlagsFrameless|giu.MasterWindowFlagsNotResizable|giu.MasterWindowFlagsTransparent,
+	dlg, _ := zenity.Progress(
+		zenity.Title("Updating Alpine Client"),
+		zenity.Pulsate(),
+		zenity.NoCancel(),
+		zenity.AutoClose(),
 	)
-	window.SetBgColor(color.Transparent)
 
-	runTasks(window)
+	// Channel to signal when runTasks is done
+	done := make(chan bool)
+	go runTasks(done)
+	<-done // Wait for runTasks to signal completion
 
-	// Load textures
-	img, err := loadImage("assets/icon.png")
-	CrumbCaptureExit(ctx, err, "loading icon textures")
-	window.SetIcon([]image.Image{img})
-
-	img, err = loadImage("assets/logo.png")
-	CrumbCaptureExit(ctx, err, "loading logo textures")
-	giu.NewTextureFromRgba(img, func(tex *giu.Texture) {
-		logo = tex
-	})
-
-	// Run main UI loop
-	window.Run(drawUI)
+	if err = dlg.Complete(); err != nil {
+		CrumbCaptureExit(ctx, err, "dlg complete")
+	}
 }
 
-func runTasks(window *giu.MasterWindow) {
+func runTasks(done chan bool) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -105,42 +88,8 @@ func runTasks(window *giu.MasterWindow) {
 		err = proc.Release()
 		CrumbCaptureExit(ctx, err, "releasing launcher process")
 
-		window.SetShouldClose(true)
+		done <- true //  Signal that runTasks is complete
 	}()
-}
-
-func drawUI() {
-	SetupStyle()
-	giu.SingleWindow().Layout(
-		giu.Align(giu.AlignCenter).To(
-			giu.Dummy(0, scaleDivider(6)),
-			giu.Image(logo).Size(LogoSize, LogoSize),
-			giu.Dummy(0, scaleDivider(6)),
-			giu.ProgressBar(float32(CompletedTasks)/float32(TotalTasks)).Size(scaleValue(WindowWidth)*0.75, scaleValue(5)),
-		),
-	)
-	PopStyle()
-}
-
-func loadImage(path string) (image.Image, error) {
-	data, err := assets.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	return png.Decode(bytes.NewReader(data))
-}
-
-func scaleDivider(value float32) float32 {
-	scale := giu.Context.GetPlatform().GetContentScale()
-	if scale > 1.0 {
-		value = value * 2
-	}
-	return value * scale
-}
-
-func scaleValue(value int) float32 {
-	scale := giu.Context.GetPlatform().GetContentScale()
-	return float32(value) * scale
 }
 
 // GetAlpinePath returns the absolute path of Alpine Client's
