@@ -1,5 +1,5 @@
 # Pinnacle
-> Current version: 1.3.1
+> Current version: 1.3.3
 
 The program that bootstraps the Alpine Client experience:
 - Downloads Java 17
@@ -9,7 +9,7 @@ The program that bootstraps the Alpine Client experience:
 ### Compatibility
 We aim to support all 64-bit versions of any x86 or ARM major desktop operating system. 32-bit support will not be added as it is not supported by modern versions of Minecraft.
 - Windows:
-  - x86: Windows 7 or later
+  - x86: Windows 10 or later
 - macOS:
   - x86: Sierra or later
   - ARM: Big Sur or later
