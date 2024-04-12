@@ -39,7 +39,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "D:\a\pinnacle\pinnacle\bin\windows\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\a\pinnacle\pinnacle\bin\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "D:\a\pinnacle\pinnacle\pkg\windows\resources\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "D:\a\pinnacle\pinnacle\pkg\windows\resources\alpine-client-icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files

@@ -83,8 +83,8 @@ jobs:
           GOARCH=amd64
           go build -trimpath
           -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
-          -o bin/linux/pinnacle-linux-amd64
-          pinnacle/src
+          -o bin/pinnacle-linux-amd64
+          .
 
 #      - name: Build for Linux (arm64)
 #        run: >-
@@ -94,12 +94,12 @@ jobs:
 #          CXX="zig c++ -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
 #          go build -trimpath
 #          -ldflags="-X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
-#          -o bin/linux/pinnacle-linux-arm64
-#          pinnacle/src
+#          -o bin/pinnacle-linux-arm64
+#          .
 
       - name: Copy syso files
         run: |
-          cp -r pkg/windows/syso/* src/
+          cp -r pkg/windows/syso/* .
 
       - name: Build for Windows (amd64)
         run: >-
@@ -110,8 +110,8 @@ jobs:
           CXX="zig c++ -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
           go build -trimpath
           -ldflags="-H=windowsgui -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
-          -o bin/windows/pinnacle-windows-amd64.exe
-          pinnacle/src
+          -o bin/pinnacle-windows-amd64.exe
+          .
 
 #      - name: Build for Windows (arm64)
 #        run: >-
@@ -122,8 +122,8 @@ jobs:
 #          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
 #          go build -trimpath
 #          -ldflags "-H=windowsgui -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
-#          -o bin/windows/pinnacle-windows-arm64.exe
-#          pinnacle/src
+#          -o bin/pinnacle-windows-arm64.exe
+#          .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -153,8 +153,8 @@ jobs:
           GOOS=darwin
           go build -trimpath -buildmode=pie
           -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
-          -o bin/darwin/pinnacle-darwin-amd64
-          pinnacle/src
+          -o bin/pinnacle-darwin-amd64
+          .
 
       - name: Build for arm64
         run: >-
@@ -163,14 +163,14 @@ jobs:
           GOOS=darwin
           go build -trimpath -buildmode=pie
           -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.sentryDSN=${SENTRY}"
-          -o bin/darwin/pinnacle-darwin-arm64
-          pinnacle/src
+          -o bin/pinnacle-darwin-arm64
+          .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-binaries
-          path: bin/darwin
+          path: bin
           retention-days: 1
 
   package_windows:
@@ -256,8 +256,8 @@ jobs:
           cp -r pkg/linux/deb/* ~/debbuild/alpine-client/
 
           # Copy binaries
-          cp bin/linux/pinnacle-linux-amd64 ~/rpmbuild/SOURCES/
-          cp bin/linux/pinnacle-linux-amd64 ~/debbuild/alpine-client/usr/bin/alpine-client
+          cp bin/pinnacle-linux-amd64 ~/rpmbuild/SOURCES/
+          cp bin/pinnacle-linux-amd64 ~/debbuild/alpine-client/usr/bin/alpine-client
           
           # Make binaries executable
           chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-amd64
@@ -290,8 +290,8 @@ jobs:
 #          sed -i 's/amd64/arm64/g' ~/debbuild/alpine-client/DEBIAN/control
 #
 #          # Copy arm64 binaries
-#          cp bin/linux/pinnacle-linux-arm64 ~/rpmbuild/SOURCES/
-#          cp bin/linux/pinnacle-linux-arm64 ~/debbuild/alpine-client/usr/bin/alpine-client
+#          cp bin/pinnacle-linux-arm64 ~/rpmbuild/SOURCES/
+#          cp bin/pinnacle-linux-arm64 ~/debbuild/alpine-client/usr/bin/alpine-client
 #
 #          # Make binaries executable
 #          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-arm64

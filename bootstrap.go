@@ -86,7 +86,6 @@ func BeginLauncher(wg *sync.WaitGroup) {
 		AddBreadcrumb(ctx, "finished (jar existed)")
 	}
 	wg.Done()
-	return
 }
 
 func BeginJre(wg *sync.WaitGroup) {
@@ -137,7 +136,6 @@ DOWNLOAD:
 	updateProgress(1)
 	AddBreadcrumb(ctx, "finished BeginJre (downloaded)")
 	wg.Done()
-	return
 }
 
 func DownloadJRE(ctx context.Context, m *MetadataResponse) {

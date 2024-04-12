@@ -1,4 +1,4 @@
-module pinnacle
+module github.com/alpine-client/pinnacle
 
 go 1.22
 

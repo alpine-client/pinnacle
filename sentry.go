@@ -19,6 +19,8 @@ func StartSentry(release string) {
 	}
 }
 
+type ContextKey string
+
 func CreateSentryCtx(task string) context.Context {
 	name, _ := os.Hostname()
 	localHub := sentry.CurrentHub().Clone()
@@ -29,6 +31,6 @@ func CreateSentryCtx(task string) context.Context {
 		scope.SetUser(sentry.User{Name: name})
 		scope.SetLevel(sentry.LevelInfo)
 	})
-	ctx := context.WithValue(context.Background(), "task", task)
+	ctx := context.WithValue(context.Background(), ContextKey("task"), task)
 	return sentry.SetHubOnContext(ctx, localHub)
 }

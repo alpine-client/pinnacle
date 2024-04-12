@@ -32,7 +32,7 @@ func AddBreadcrumb(ctx context.Context, desc string, level ...sentry.Level) {
 	}
 	hub := sentry.GetHubFromContext(ctx)
 	hub.AddBreadcrumb(&sentry.Breadcrumb{
-		Category: ctx.Value("task").(string),
+		Category: ctx.Value(ContextKey("task")).(string),
 		Message:  desc,
 		Level:    lvl,
 	}, nil)
