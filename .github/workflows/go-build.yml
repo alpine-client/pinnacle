@@ -417,7 +417,7 @@ jobs:
           path: build/out
           retention-days: 1
 
-  merge_artifacts:
+  merge_and_release:
     needs: [ package_windows, package_linux, package_macos ]
     runs-on: ubuntu-latest
     steps:
@@ -426,7 +426,17 @@ jobs:
         with:
           path: all
 
-      - name: Reorganize
+      - name: Checkout version file
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            VERSION
+
+      - name: Read version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Reorganize artifacts
         run: |
           mkdir -p merged/{binaries,installers}
 
@@ -446,3 +456,17 @@ jobs:
           path: merged
           compression-level: 9
           retention-days: 90
+
+      - name: Create release
+        if: github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: ${{ env.VERSION }}
+          files: |
+            merged/installers/*
+            merged/binaries/*
+          fail_on_unmatched_files: true
+          prerelease: false
+          make_latest: true
+          draft: false
