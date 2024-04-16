@@ -421,11 +421,6 @@ jobs:
     needs: [ package_windows, package_linux, package_macos ]
     runs-on: ubuntu-latest
     steps:
-      - name: Download
-        uses: actions/download-artifact@v4
-        with:
-          path: all
-
       - name: Checkout version file
         uses: actions/checkout@v4
         with:
@@ -435,6 +430,11 @@ jobs:
       - name: Read version
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          path: all
 
       - name: Reorganize artifacts
         run: |
