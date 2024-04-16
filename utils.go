@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -49,7 +50,7 @@ func (sys OperatingSystem) JavaExecutable() string {
 	return "java"
 }
 
-func GetFromUrl(url string) (io.ReadCloser, error) {
+func GetFromURL(url string) (io.ReadCloser, error) {
 	// Create the HTTP client
 	client := http.Client{
 		Transport: &http.Transport{
@@ -60,7 +61,10 @@ func GetFromUrl(url string) (io.ReadCloser, error) {
 	}
 
 	// Create the HTTP request
-	request, err := http.NewRequest("GET", url, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -80,10 +84,10 @@ func GetFromUrl(url string) (io.ReadCloser, error) {
 	return response.Body, nil
 }
 
-func DownloadFromUrl(url string, path string) error {
+func DownloadFromURL(url string, path string) error {
 	ctx := CreateSentryCtx("DownloadFromUrl")
 	// Perform the HTTP request
-	body, err := GetFromUrl(url)
+	body, err := GetFromURL(url)
 	if err != nil {
 		return err
 	}

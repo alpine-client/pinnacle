@@ -1,7 +1,9 @@
 package main
 
-type OperatingSystem string
-type Architecture string
+type (
+	OperatingSystem string
+	Architecture    string
+)
 
 const (
 	MetadataURL  string = "https://metadata.alpineclientprod.com"

@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mholt/archiver/v3"
 	"io"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"github.com/AllenDang/giu"
+	"github.com/mholt/archiver/v3"
 )
 
 const TotalTasks = 10
@@ -21,7 +21,7 @@ const TotalTasks = 10
 var CompletedTasks = 0
 
 type MetadataResponse struct {
-	Url  string `json:"url"`
+	URL  string `json:"url"`
 	Hash string `json:"sha1"`
 	Size uint32 `json:"size"`
 }
@@ -33,7 +33,7 @@ type jreManifest struct {
 
 func FetchMetadata(url string) *MetadataResponse {
 	ctx := CreateSentryCtx("FetchMetadata")
-	body, err := GetFromUrl(url)
+	body, err := GetFromURL(url)
 	CrumbCaptureExit(ctx, err, "making request to "+url)
 	defer func() {
 		if err = body.Close(); err != nil {
@@ -74,8 +74,8 @@ func BeginLauncher(wg *sync.WaitGroup) {
 	targetPath := filepath.Join(WorkingDir, "launcher.jar")
 	if !FileExists(targetPath) || !FileHashMatches(launcher.Hash, targetPath) {
 		updateProgress(1)
-		err := DownloadFromUrl(launcher.Url, targetPath)
-		CrumbCaptureExit(ctx, err, "downloading from "+launcher.Url)
+		err := DownloadFromURL(launcher.URL, targetPath)
+		CrumbCaptureExit(ctx, err, "downloading from "+launcher.URL)
 		updateProgress(1)
 		if !FileHashMatches(launcher.Hash, targetPath) {
 			CrumbCaptureExit(ctx, errors.New("fatal error"), "failed checksum validation after download")
@@ -143,8 +143,8 @@ func DownloadJRE(ctx context.Context, m *MetadataResponse) {
 	manifestPath := filepath.Join(basePath, "version.json")
 	targetPath := filepath.Join(basePath, "jre.zip")
 
-	err := DownloadFromUrl(m.Url, targetPath)
-	CrumbCaptureExit(ctx, err, "downloading from "+m.Url)
+	err := DownloadFromURL(m.URL, targetPath)
+	CrumbCaptureExit(ctx, err, "downloading from "+m.URL)
 	updateProgress(1)
 
 	extractedPath := filepath.Join(basePath, "extracted")

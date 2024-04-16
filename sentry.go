@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"github.com/getsentry/sentry-go"
 	"os"
 	"runtime"
+
+	"github.com/getsentry/sentry-go"
 )
 
-// sentryDSN is set via go build -ldflags "-X main.sentryDSN=our_dsn"
+// sentryDSN is set via go build -ldflags "-X main.sentryDSN=our_dsn".
 var sentryDSN string
 
 func StartSentry(release string) {

@@ -27,7 +27,6 @@ var (
 var assets embed.FS
 
 func main() {
-
 	StartSentry(version)
 	ctx := CreateSentryCtx("main")
 	defer sentry.Flush(2 * time.Second)
@@ -130,7 +129,7 @@ func loadImage(path string) (image.Image, error) {
 func scaleDivider(value float32) float32 {
 	scale := giu.Context.GetPlatform().GetContentScale()
 	if scale > 1.0 {
-		value = value * 2
+		value *= 2
 	}
 	return value * scale
 }
