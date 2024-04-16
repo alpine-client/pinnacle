@@ -407,7 +407,7 @@ jobs:
           mkdir -p merged/{binaries,installers}
 
           # Combine binaries
-          cp -r all/windows-linux-binaries/*/ merged/binaries/
+          cp -r all/windows-linux-binaries/* merged/binaries/
           cp -r all/macos-binaries/* merged/binaries/
 
           # Combine installers
