@@ -76,19 +76,16 @@ func runTasks(window *giu.MasterWindow) {
 		jarPath := filepath.Join(WorkingDir, "launcher.jar")
 		jrePath := filepath.Join(WorkingDir, "jre", "17", "extracted", "bin", Sys.JavaExecutable())
 
-		var args []string
+		args := []string{
+			"-Xms512M",
+			"-Xmx512M",
+		}
 
 		if Sys == Mac {
 			args = append(args, "-XstartOnFirstThread")
 		}
 
-		args = append(
-			args,
-			"-Xms256M",
-			"-Xmx1G",
-			"-jar",
-			jarPath,
-		)
+		args = append(args, "-jar", jarPath)
 
 		if version != "" {
 			args = append(args, "--pinnacle-version", version)
