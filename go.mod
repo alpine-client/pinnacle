@@ -1,6 +1,6 @@
 module github.com/alpine-client/pinnacle
 
-go 1.22
+go 1.22.2
 
 require (
 	github.com/AllenDang/giu v0.7.0
@@ -21,7 +21,7 @@ require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240307211618-a69d953ea142 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/josephspurrier/goversioninfo v1.4.0 // indirect
-	github.com/klauspost/compress v1.17.7 // indirect
+	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/mazznoer/csscolorparser v0.1.3 // indirect
 	github.com/napsy/go-css v0.0.0-20230611142900-9dd118f3874c // indirect
