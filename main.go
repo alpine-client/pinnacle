@@ -3,12 +3,12 @@ package main
 import (
 	"bytes"
 	"embed"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/AllenDang/giu"
@@ -28,14 +28,15 @@ var assets embed.FS
 
 func main() {
 	StartSentry(version)
-	ctx := CreateSentryCtx("main")
 	defer sentry.Flush(2 * time.Second)
 
 	Sys, Arch = SystemInformation()
 	WorkingDir = getAlpinePath()
 
+	ctx := CreateSentryCtx("main")
+
 	err := os.MkdirAll(WorkingDir, os.ModePerm)
-	CrumbCaptureExit(ctx, err, "mkdir "+WorkingDir)
+	CaptureErrExit(ctx, err)
 
 	window := giu.NewMasterWindow(
 		"Alpine Client Updater",
@@ -44,15 +45,17 @@ func main() {
 	)
 	window.SetBgColor(color.Transparent)
 
-	runTasks(window)
+	go runTasks(window)
 
 	// Load textures
+	AddBreadcrumb(ctx, "loading icon textures")
 	img, err := loadImage("assets/icon.png")
-	CrumbCaptureExit(ctx, err, "loading icon textures")
+	CaptureErrExit(ctx, err)
 	window.SetIcon([]image.Image{img})
 
+	AddBreadcrumb(ctx, "loading logo textures")
 	img, err = loadImage("assets/logo.png")
-	CrumbCaptureExit(ctx, err, "loading logo textures")
+	CaptureErrExit(ctx, err)
 	giu.NewTextureFromRgba(img, func(tex *giu.Texture) {
 		logo = tex
 	})
@@ -62,47 +65,43 @@ func main() {
 }
 
 func runTasks(window *giu.MasterWindow) {
-	var wg sync.WaitGroup
-	wg.Add(2)
+	BeginJre()
+	BeginLauncher()
 
-	go BeginJre(&wg)
-	go BeginLauncher(&wg)
+	ctx := CreateSentryCtx("runTasks")
 
-	go func() {
-		wg.Wait()
+	jarPath := filepath.Join(WorkingDir, "launcher.jar")
+	jrePath := filepath.Join(WorkingDir, "jre", "17", "extracted", "bin", Sys.JavaExecutable())
 
-		ctx := CreateSentryCtx("runTasks")
-		jarPath := filepath.Join(WorkingDir, "launcher.jar")
-		jrePath := filepath.Join(WorkingDir, "jre", "17", "extracted", "bin", Sys.JavaExecutable())
+	args := []string{
+		"-Xms512M",
+		"-Xmx512M",
+	}
 
-		args := []string{
-			"-Xms512M",
-			"-Xmx512M",
-		}
+	if Sys == Mac {
+		args = append(args, "-XstartOnFirstThread")
+	}
 
-		if Sys == Mac {
-			args = append(args, "-XstartOnFirstThread")
-		}
+	args = append(args, "-jar", jarPath)
 
-		args = append(args, "-jar", jarPath)
+	if version != "" {
+		args = append(args, "--pinnacle-version", version)
+	}
 
-		if version != "" {
-			args = append(args, "--pinnacle-version", version)
-		}
+	processAttr := &os.ProcAttr{
+		Dir:   WorkingDir,
+		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
+	}
 
-		processAttr := &os.ProcAttr{
-			Dir:   WorkingDir,
-			Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
-		}
+	AddBreadcrumb(ctx, fmt.Sprintf("starting launcher process: %s %s", jrePath, args))
+	proc, err := os.StartProcess(jrePath, args, processAttr)
+	CaptureErrExit(ctx, err)
 
-		proc, err := os.StartProcess(jrePath, args, processAttr)
-		CrumbCaptureExit(ctx, err, "starting launcher process")
+	AddBreadcrumb(ctx, "releasing launcher process")
+	err = proc.Release()
+	CaptureErrExit(ctx, err)
 
-		err = proc.Release()
-		CrumbCaptureExit(ctx, err, "releasing launcher process")
-
-		window.SetShouldClose(true)
-	}()
+	window.SetShouldClose(true)
 }
 
 func drawUI() {

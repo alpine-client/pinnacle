@@ -2,21 +2,16 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"runtime"
-	"time"
 )
 
 func SystemInformation() (OperatingSystem, Architecture) {
 	var sys OperatingSystem
 	var arch Architecture
-	var err error
-	ctx := CreateSentryCtx("SystemInformation")
 
 	switch runtime.GOOS {
 	case "windows":
@@ -26,9 +21,8 @@ func SystemInformation() (OperatingSystem, Architecture) {
 	case "darwin":
 		sys = Mac
 	default:
-		err = errors.New("unsupported operating system")
+		panic("unsupported operating system")
 	}
-	CrumbCaptureExit(ctx, err, "checking OS: "+runtime.GOOS)
 
 	switch runtime.GOARCH {
 	case "amd64":
@@ -36,9 +30,8 @@ func SystemInformation() (OperatingSystem, Architecture) {
 	case "arm64":
 		arch = Arm64
 	default:
-		err = errors.New("unsupported system architecture")
+		panic("unsupported system architecture")
 	}
-	CrumbCaptureExit(ctx, err, "checking Arch: "+runtime.GOARCH)
 
 	return sys, arch
 }
@@ -50,33 +43,19 @@ func (sys OperatingSystem) JavaExecutable() string {
 	return "java"
 }
 
-func GetFromURL(url string) (io.ReadCloser, error) {
-	// Create the HTTP client
-	client := http.Client{
-		Transport: &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout: 30 * time.Second,
-			}).DialContext,
-		},
-	}
-
-	// Create the HTTP request
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
+func GetFromURL(ctx context.Context, url string) (io.ReadCloser, error) {
+	AddBreadcrumb(ctx, "making request to "+url)
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Set("User-Agent", fmt.Sprintf("Pinnacle/%s (%s; %s)", version, Sys, Arch))
 
-	// Perform the HTTP request
-	response, err := client.Do(request)
+	request.Header.Set("User-Agent", fmt.Sprintf("Pinnacle/%s (%s; %s)", version, Sys, Arch))
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if request was successful
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("received status code: %d", response.StatusCode)
 	}
@@ -84,31 +63,27 @@ func GetFromURL(url string) (io.ReadCloser, error) {
 	return response.Body, nil
 }
 
-func DownloadFromURL(url string, path string) error {
-	ctx := CreateSentryCtx("DownloadFromUrl")
-	// Perform the HTTP request
-	body, err := GetFromURL(url)
+func DownloadFromURL(ctx context.Context, url string, path string) error {
+	body, err := GetFromURL(ctx, url)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if err = body.Close(); err != nil {
-			CrumbCaptureExit(ctx, err, "closing request body")
+			CaptureErrExit(ctx, err)
 		}
 	}()
 
-	// Create or truncate the file
 	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if err = file.Close(); err != nil {
-			CrumbCaptureExit(ctx, err, "closing file body")
+			CaptureErrExit(ctx, err)
 		}
 	}()
 
-	// Copy response body to file
 	_, err = io.Copy(file, body)
 	return err
 }

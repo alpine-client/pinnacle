@@ -6,21 +6,39 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/ncruces/zenity"
 )
 
-func isBadRecordMacErr(err error) bool {
-	// Since errors can be wrapped, we need to unwrap it first
-	unwrappedErr := errors.Unwrap(err)
-	if unwrappedErr == nil {
-		unwrappedErr = err // There was no wrapped error, so we use the original
-	}
+// sentryDSN is set via go build -ldflags "-X main.sentryDSN=our_dsn".
+var sentryDSN string
 
-	// Check if the error message contains the specific TLS bad record MAC message
-	return strings.Contains(unwrappedErr.Error(), "tls: bad record MAC")
+func StartSentry(release string) {
+	if sentryDSN != "" {
+		_ = sentry.Init(sentry.ClientOptions{
+			Dsn:     sentryDSN,
+			Release: "pinnacle@" + release,
+		})
+	}
+}
+
+type ContextKey string
+
+func CreateSentryCtx(task string) context.Context {
+	name, _ := os.Hostname()
+	localHub := sentry.CurrentHub().Clone()
+	localHub.ConfigureScope(func(scope *sentry.Scope) {
+		scope.SetTag("Task", task)
+		scope.SetTag("OS", runtime.GOOS)
+		scope.SetTag("Arch", runtime.GOARCH)
+		scope.SetUser(sentry.User{Name: name})
+		scope.SetLevel(sentry.LevelInfo)
+	})
+	ctx := context.WithValue(context.Background(), ContextKey("task"), task)
+	return sentry.SetHubOnContext(ctx, localHub)
 }
 
 func AddBreadcrumb(ctx context.Context, desc string, level ...sentry.Level) {
@@ -38,20 +56,18 @@ func AddBreadcrumb(ctx context.Context, desc string, level ...sentry.Level) {
 	}, nil)
 }
 
-// CrumbCaptureExit sends the error to sentry and displays a pop-up for the user
+// CaptureErrExit sends the error to sentry and displays a pop-up for the user
 // Ensures that only the first pop-up displays in the event of multiple errors.
 // Also adds a breadcrumb to the provided hub.
-func CrumbCaptureExit(ctx context.Context, err error, desc string) {
+func CaptureErrExit(ctx context.Context, err error) {
 	if err == nil {
-		AddBreadcrumb(ctx, desc, sentry.LevelInfo)
 		return
 	}
+	message := err.Error()
+	AddBreadcrumb(ctx, message, sentry.LevelError)
 
-	// Send error to sentry
-	AddBreadcrumb(ctx, desc, sentry.LevelError)
 	eventID := sentry.GetHubFromContext(ctx).CaptureException(err)
 	errID := *eventID
-	message := err.Error()
 
 	// Override message in known cases
 	if isBadRecordMacErr(err) {
@@ -99,4 +115,15 @@ func openSupportWebsite() {
 			zenity.Title("Error"), zenity.InfoIcon,
 		)
 	}
+}
+
+func isBadRecordMacErr(err error) bool {
+	// Since errors can be wrapped, we need to unwrap it first
+	unwrappedErr := errors.Unwrap(err)
+	if unwrappedErr == nil {
+		unwrappedErr = err // There was no wrapped error, so we use the original
+	}
+
+	// Check if the error message contains the specific TLS bad record MAC message
+	return strings.Contains(unwrappedErr.Error(), "tls: bad record MAC")
 }
