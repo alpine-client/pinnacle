@@ -1,5 +1,5 @@
 # Pinnacle
-> Current version: 1.3.3
+> Current version: 1.4.0
 
 The program that bootstraps the Alpine Client experience:
 - Downloads Java 17
