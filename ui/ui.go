@@ -30,7 +30,7 @@ var (
 func UpdateProgress(i int) {
 	mutex.Lock()
 	steps += i
-	// giu.Update()
+	giu.Update()
 	mutex.Unlock()
 }
 
