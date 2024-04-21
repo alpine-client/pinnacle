@@ -1,4 +1,4 @@
-package main
+package sentry
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"strings"
+	"time"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/ncruces/zenity"
@@ -16,7 +16,12 @@ import (
 // sentryDSN is set via go build -ldflags "-X main.sentryDSN=our_dsn".
 var sentryDSN string
 
-func StartSentry(release string) {
+const (
+	LevelWarning = sentry.LevelWarning
+	LevelError   = sentry.LevelError
+)
+
+func Start(release string) {
 	if sentryDSN != "" {
 		_ = sentry.Init(sentry.ClientOptions{
 			Dsn:     sentryDSN,
@@ -25,9 +30,19 @@ func StartSentry(release string) {
 	}
 }
 
-type ContextKey string
+func Flush(timeout time.Duration) {
+	sentry.Flush(timeout)
+}
 
-func CreateSentryCtx(task string) context.Context {
+func Recover(ctx context.Context) {
+	if r := recover(); r != nil {
+		Breadcrumb(ctx, fmt.Sprintf("recovered panic: %v", r), LevelWarning)
+	}
+}
+
+type contextKey string
+
+func NewContext(task string) context.Context {
 	name, _ := os.Hostname()
 	localHub := sentry.CurrentHub().Clone()
 	localHub.ConfigureScope(func(scope *sentry.Scope) {
@@ -37,11 +52,11 @@ func CreateSentryCtx(task string) context.Context {
 		scope.SetUser(sentry.User{Name: name})
 		scope.SetLevel(sentry.LevelInfo)
 	})
-	ctx := context.WithValue(context.Background(), ContextKey("task"), task)
+	ctx := context.WithValue(context.Background(), contextKey("task"), task)
 	return sentry.SetHubOnContext(ctx, localHub)
 }
 
-func AddBreadcrumb(ctx context.Context, desc string, level ...sentry.Level) {
+func Breadcrumb(ctx context.Context, desc string, level ...sentry.Level) {
 	var lvl sentry.Level
 	if len(level) == 0 {
 		lvl = sentry.LevelInfo
@@ -50,10 +65,19 @@ func AddBreadcrumb(ctx context.Context, desc string, level ...sentry.Level) {
 	}
 	hub := sentry.GetHubFromContext(ctx)
 	hub.AddBreadcrumb(&sentry.Breadcrumb{
-		Category: ctx.Value(ContextKey("task")).(string),
+		Category: ctx.Value(contextKey("task")).(string),
 		Message:  desc,
 		Level:    lvl,
 	}, nil)
+}
+
+// CaptureErr reports an error to Sentry but does not exit the program.
+func CaptureErr(ctx context.Context, err error) *sentry.EventID {
+	if err == nil {
+		return nil
+	}
+	Breadcrumb(ctx, err.Error(), sentry.LevelError)
+	return sentry.GetHubFromContext(ctx).CaptureException(err)
 }
 
 // CaptureErrExit sends the error to sentry and displays a pop-up for the user
@@ -63,24 +87,10 @@ func CaptureErrExit(ctx context.Context, err error) {
 	if err == nil {
 		return
 	}
-	message := err.Error()
-	AddBreadcrumb(ctx, message, sentry.LevelError)
 
-	eventID := sentry.GetHubFromContext(ctx).CaptureException(err)
-	errID := *eventID
-
-	// Override message in known cases
-	if isBadRecordMacErr(err) {
-		message += "\n\nPlease make sure your system clock is set correctly."
-	}
-	var pathErr *os.PathError
-	if errors.As(err, &pathErr) {
-		message += "\n\nPlease make sure Alpine Client is not already running."
-	}
-
-	// Display popup
+	id := CaptureErr(ctx, err)
 	choice := zenity.Error(
-		fmt.Sprintf("%s\n\nCode: %s", message, errID),
+		err.Error()+"\n\nCode: "+string(*id),
 		zenity.Title("Error"),
 		zenity.OKLabel("Close"),
 		zenity.ExtraButton("Help"),
@@ -91,39 +101,30 @@ func CaptureErrExit(ctx context.Context, err error) {
 		openSupportWebsite()
 	}
 
-	// Exit program
 	os.Exit(1)
 }
+
+const SupportURL string = "https://discord.alpineclient.com"
 
 // openSupportWebsite tries to open the specified URL in the default browser.
 func openSupportWebsite() {
 	var err error
-	switch Sys {
-	case Windows:
+
+	switch runtime.GOOS {
+	case "windows":
 		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", SupportURL).Run()
-	case Mac:
-		err = exec.Command("open", SupportURL).Run()
-	case Linux:
+	case "linux":
 		err = exec.Command("xdg-open", SupportURL).Run()
-	default:
-		err = errors.New("unable to open support page")
+	case "darwin":
+		err = exec.Command("open", SupportURL).Run()
 	}
+
 	if err != nil {
 		// None of the above worked. Create new popup with url.
 		_ = zenity.Info(
-			fmt.Sprintf("Please visit %s for assistance.", SupportURL),
-			zenity.Title("Error"), zenity.InfoIcon,
+			"Please visit "+SupportURL+" for assistance.",
+			zenity.Title("Error"),
+			zenity.InfoIcon,
 		)
 	}
-}
-
-func isBadRecordMacErr(err error) bool {
-	// Since errors can be wrapped, we need to unwrap it first
-	unwrappedErr := errors.Unwrap(err)
-	if unwrappedErr == nil {
-		unwrappedErr = err // There was no wrapped error, so we use the original
-	}
-
-	// Check if the error message contains the specific TLS bad record MAC message
-	return strings.Contains(unwrappedErr.Error(), "tls: bad record MAC")
 }
