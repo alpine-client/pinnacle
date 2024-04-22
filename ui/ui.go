@@ -5,13 +5,13 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"github.com/alpine-client/pinnacle/sentry"
 	"image"
 	"image/color"
 	"image/png"
 	"sync"
 
 	"github.com/AllenDang/giu"
-	"github.com/alpine-client/pinnacle/sentry"
 	"github.com/ncruces/zenity"
 )
 
@@ -33,7 +33,9 @@ var (
 func UpdateProgress(i int, msg ...string) {
 	mutex.Lock()
 	steps += i
-	giu.Update()
+	if window != nil {
+		giu.Update()
+	}
 	mutex.Unlock()
 
 	if dialog != nil && len(msg) != 0 {
@@ -61,9 +63,12 @@ func Setup(ctx context.Context, fs embed.FS) {
 		WindowWidth, WindowHeight,
 		giu.MasterWindowFlagsFrameless|giu.MasterWindowFlagsNotResizable|giu.MasterWindowFlagsTransparent,
 	)
+	if window == nil {
+		return
+	}
 	window.SetBgColor(color.Transparent)
 
-	icon, err := loadImage(fs, "assets/aaaaaaaaaicon.png")
+	icon, err := loadImage(fs, "assets/icon.png")
 	if err != nil {
 		panic(err)
 	}
