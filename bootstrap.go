@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AllenDang/giu"
 	"github.com/alpine-client/pinnacle/sentry"
 	"github.com/alpine-client/pinnacle/ui"
 )
@@ -29,15 +28,27 @@ type JreManifest struct {
 	Size uint32 `json:"size"`
 }
 
-func runTasks(window *giu.MasterWindow, done ...chan bool) {
-	checkJRE()
-	checkLauncher()
-	runLauncher()
-	if window != nil {
-		window.SetShouldClose(true)
-	} else {
-		done[0] <- true
+func runTasks(done chan bool) {
+	tasks := []struct {
+		name string
+		task func(context.Context) error
+	}{
+		{"checkJRE", checkJRE},
+		{"checkLauncher", checkLauncher},
+		{"runLauncher", runLauncher},
 	}
+
+	for _, t := range tasks {
+		ctx := sentry.NewContext(t.name)
+		err := t.task(ctx)
+		if err != nil {
+			ui.Close()
+			ui.DisplayError(ctx, err)
+			break
+		}
+	}
+
+	done <- true
 }
 
 func fetchMetadata(ctx context.Context, url string) (*MetadataResponse, error) {
@@ -74,13 +85,14 @@ func fileHashMatches(ctx context.Context, hash string, path string) bool {
 	return false
 }
 
-func checkLauncher() {
-	ctx := sentry.NewContext("checkLauncher")
-
+func checkLauncher(ctx context.Context) error {
+	ui.UpdateProgress(5, "Validating launcher...")
 	sentry.Breadcrumb(ctx, "fetching metadata from /pinnacle")
+
 	launcher, err := fetchMetadata(ctx, MetadataURL+"/pinnacle")
-	sentry.CaptureErrExit(ctx, err)
-	ui.UpdateProgress(5)
+	if err != nil {
+		return err
+	}
 
 	targetPath := alpinePath("launcher.jar")
 	if !fileExists(targetPath) {
@@ -93,40 +105,50 @@ func checkLauncher() {
 		goto DOWNLOAD
 	}
 
-	ui.UpdateProgress(25)
+	ui.UpdateProgress(25, "Preparing to start launcher...")
 	sentry.Breadcrumb(ctx, "finished checkLauncher (jar existed)")
-	return
+	return nil
 
 DOWNLOAD:
-	downloadLauncher(ctx, launcher, targetPath)
+	err = downloadLauncher(ctx, launcher, targetPath)
+	if err != nil {
+		return err
+	}
 	sentry.Breadcrumb(ctx, "finished checkLauncher (jar downloaded)")
+	return nil
 }
 
-func downloadLauncher(ctx context.Context, manifest *MetadataResponse, dest string) {
+func downloadLauncher(ctx context.Context, manifest *MetadataResponse, dest string) error {
 	err := downloadFromURL(ctx, manifest.URL, dest)
-	sentry.CaptureErrExit(ctx, err)
-	ui.UpdateProgress(20)
+	if err != nil {
+		return err
+	}
+	ui.UpdateProgress(20, "Verifying launcher hash...")
 	if !fileHashMatches(ctx, manifest.Hash, dest) {
 		sentry.Breadcrumb(ctx, "failed checksum validation after download", sentry.LevelError)
-		sentry.CaptureErrExit(ctx, errors.New("fatal error"))
+		return errors.New("fatal error")
 	}
-	ui.UpdateProgress(5)
+	ui.UpdateProgress(5, "Preparing to start launcher...")
+	return nil
 }
 
-func checkJRE() {
-	ctx := sentry.NewContext("checkJRE")
+func checkJRE(ctx context.Context) error {
 	path := alpinePath("jre", "17")
 
 	sentry.Breadcrumb(ctx, "mkdir "+path)
 	err := os.MkdirAll(path, os.ModePerm)
-	sentry.CaptureErrExit(ctx, err)
-	ui.UpdateProgress(5)
+	if err != nil {
+		return err
+	}
+	ui.UpdateProgress(5, "Fetching metadata...")
 
 	endpoint := fmt.Sprintf("%s/jre?version=17&os=%s&arch=%s", MetadataURL, Sys, Arch)
 	sentry.Breadcrumb(ctx, "fetching manifest from "+endpoint)
 	jre, err := fetchMetadata(ctx, endpoint)
-	sentry.CaptureErrExit(ctx, err)
-	ui.UpdateProgress(15)
+	if err != nil {
+		return err
+	}
+	ui.UpdateProgress(15, "Validating java...")
 
 	var data []byte
 	var manifest JreManifest
@@ -157,50 +179,66 @@ func checkJRE() {
 
 	ui.UpdateProgress(340)
 	sentry.Breadcrumb(ctx, "finished checkJRE (existed)")
-	return
+	return nil
 
 DOWNLOAD:
-	downloadJRE(ctx, jre)
+	err = downloadJRE(ctx, jre)
+	if err != nil {
+		return err
+	}
 	sentry.Breadcrumb(ctx, "finished checkJRE (downloaded)")
+	return nil
 }
 
-func downloadJRE(ctx context.Context, m *MetadataResponse) {
+func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 	zipPath := alpinePath("jre", "17", "jre.zip")
 
+	ui.UpdateProgress(1, "Downloading java...")
 	err := downloadFromURL(ctx, m.URL, zipPath)
-	sentry.CaptureErrExit(ctx, err)
+	if err != nil {
+		return err
+	}
 	ui.UpdateProgress(20)
 
 	extractedPath := alpinePath("jre", "17", "extracted")
 	sentry.Breadcrumb(ctx, "cleaning up path "+extractedPath)
 	err = os.RemoveAll(extractedPath)
-	sentry.CaptureErrExit(ctx, err)
+	if err != nil {
+		return err
+	}
 	ui.UpdateProgress(5)
 
 	sentry.Breadcrumb(ctx, "extracting zip "+zipPath)
 	err = unzipAll(ctx, zipPath, extractedPath)
-	sentry.CaptureErrExit(ctx, err)
+	if err != nil {
+		return err
+	}
 
 	bytes, err := json.Marshal(JreManifest{Hash: m.Hash, Size: m.Size})
-	sentry.CaptureErrExit(ctx, err)
+	if err != nil {
+		return err
+	}
 	ui.UpdateProgress(5)
 
 	manifestPath := alpinePath("jre", "17", "version.json")
 	sentry.Breadcrumb(ctx, "writing manifest to file "+manifestPath)
 	err = os.WriteFile(manifestPath, bytes, os.ModePerm)
-	sentry.CaptureErrExit(ctx, err)
+	if err != nil {
+		return err
+	}
 	ui.UpdateProgress(5)
 
 	_ = os.Remove(zipPath) // failing to delete old zip won't break anything.
 	sentry.Breadcrumb(ctx, "finished checkJRE (downloaded)")
 	ui.UpdateProgress(5)
+	return nil
 }
 
-func runLauncher() {
-	ctx := sentry.NewContext("runLauncher")
-
+func runLauncher(ctx context.Context) error {
 	jarPath := alpinePath("launcher.jar")
 	jrePath := alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable())
+
+	ui.UpdateProgress(1, "Starting launcher...")
 
 	args := []string{
 		"-Xms256M",
@@ -224,13 +262,18 @@ func runLauncher() {
 
 	sentry.Breadcrumb(ctx, fmt.Sprintf("starting launcher process: %s %s", jrePath, args))
 	proc, err := os.StartProcess(jrePath, args, processAttr)
-	sentry.CaptureErrExit(ctx, err)
+	if err != nil {
+		return err
+	}
 	ui.UpdateProgress(20)
 
 	sentry.Breadcrumb(ctx, "releasing launcher process")
 	err = proc.Release()
-	sentry.CaptureErrExit(ctx, err)
+	if err != nil {
+		return err
+	}
 	ui.UpdateProgress(int(ui.TotalSteps))
+	return nil
 }
 
 func unzipAll(ctx context.Context, src string, dest string) error {
@@ -244,8 +287,9 @@ func unzipAll(ctx context.Context, src string, dest string) error {
 	if err = os.MkdirAll(dest, os.ModePerm); err != nil {
 		return err
 	}
-	for _, file := range zipReader.File {
-		ui.UpdateProgress(1)
+	count := len(zipReader.File)
+	for i, file := range zipReader.File {
+		ui.UpdateProgress(1, fmt.Sprintf("Extracting java (%d/%d)...", i, count))
 		parts := strings.Split(file.Name, "/")
 		if len(parts) > 1 {
 			parts = parts[1:]

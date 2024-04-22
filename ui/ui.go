@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"embed"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
@@ -22,16 +23,22 @@ const (
 )
 
 var (
-	steps int
-	logoI *image.RGBA
-	mutex sync.Mutex
+	steps  int
+	logoI  *image.RGBA
+	mutex  sync.Mutex
+	window *giu.MasterWindow
+	dialog zenity.ProgressDialog
 )
 
-func UpdateProgress(i int) {
+func UpdateProgress(i int, msg ...string) {
 	mutex.Lock()
 	steps += i
 	giu.Update()
 	mutex.Unlock()
+
+	if dialog != nil && len(msg) != 0 {
+		_ = dialog.Text(msg[0])
+	}
 }
 
 func ReadProgress() float32 {
@@ -41,17 +48,22 @@ func ReadProgress() float32 {
 	return float32(p) / TotalSteps
 }
 
-func NewWindow(ctx context.Context, fs embed.FS) *giu.MasterWindow {
-	defer sentry.Recover(ctx)
+func Setup(ctx context.Context, fs embed.FS) {
+	defer func() {
+		if r := recover(); r != nil {
+			sentry.Breadcrumb(ctx, fmt.Sprintf("recovered panic: %v", r), sentry.LevelWarning)
+			window = nil
+		}
+	}()
 
-	window := giu.NewMasterWindow(
+	window = giu.NewMasterWindow(
 		"Alpine Client Updater",
 		WindowWidth, WindowHeight,
 		giu.MasterWindowFlagsFrameless|giu.MasterWindowFlagsNotResizable|giu.MasterWindowFlagsTransparent,
 	)
 	window.SetBgColor(color.Transparent)
 
-	icon, err := loadImage(fs, "assets/icon.png")
+	icon, err := loadImage(fs, "assets/aaaaaaaaaicon.png")
 	if err != nil {
 		panic(err)
 	}
@@ -61,22 +73,9 @@ func NewWindow(ctx context.Context, fs embed.FS) *giu.MasterWindow {
 	if err != nil {
 		panic(err)
 	}
-
-	return window
 }
 
-func NewZenityWindow(ctx context.Context) zenity.ProgressDialog {
-	dialog, err := zenity.Progress(
-		zenity.Title("Starting Alpine Client"),
-		zenity.AutoClose(),
-		zenity.NoCancel(),
-		zenity.Pulsate(),
-	)
-	sentry.CaptureErrExit(ctx, err)
-	return dialog
-}
-
-func RenderDefault() {
+func defaultUI() {
 	SetupStyle()
 	giu.SingleWindow().Layout(
 		giu.Align(giu.AlignCenter).To(
@@ -87,6 +86,38 @@ func RenderDefault() {
 		),
 	)
 	PopStyle()
+}
+
+func runZenity() {
+	var err error
+	dialog, err = zenity.Progress(
+		zenity.Title("Starting Alpine Client"),
+		zenity.NoCancel(),
+		zenity.Pulsate(),
+		zenity.Width(uint(WindowWidth)),
+		zenity.Height(uint(WindowHeight)),
+	)
+	if err != nil {
+		dialog = nil
+	}
+}
+
+func Render() {
+	if window != nil {
+		window.Run(defaultUI)
+	} else {
+		runZenity()
+	}
+}
+
+func Close() {
+	if window != nil {
+		window.SetShouldClose(true)
+		window = nil
+	}
+	if dialog != nil {
+		_ = dialog.Close()
+	}
 }
 
 func scaleDivider(value float32) float32 {

@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/alpine-client/pinnacle/sentry"
 )
@@ -77,24 +79,47 @@ func alpinePath(subs ...string) string {
 	return filepath.Join(append(dirs, subs...)...)
 }
 
+var httpClient = &http.Client{
+	Transport: &http.Transport{
+		DisableKeepAlives:     true,
+		ResponseHeaderTimeout: 15 * time.Second,
+	},
+}
+
 func getFromURL(ctx context.Context, url string) (io.ReadCloser, error) {
-	sentry.Breadcrumb(ctx, "making request to "+url)
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
+	const maxAttempts = 4
+	var statusCode int
 
-	request.Header.Set("User-Agent", fmt.Sprintf("Pinnacle/%s (%s; %s)", version, Sys, Arch))
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return nil, err
-	}
+	for i := range maxAttempts {
+		if i > 0 {
+			<-time.After(time.Second * time.Duration(2<<i)) // Exponential backoff
+		}
+		sentry.Breadcrumb(ctx, fmt.Sprintf("[%d] making request to %s", i+1, url))
 
-	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("received status code: %d", response.StatusCode)
-	}
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("User-Agent", fmt.Sprintf("Pinnacle/%s (%s; %s)", version, Sys, Arch))
 
-	return response.Body, nil
+		response, err := httpClient.Do(request)
+		if err != nil {
+			sentry.Breadcrumb(ctx, fmt.Sprintf("[%d] request error: %v", i+1, err), sentry.LevelError)
+			continue
+		}
+
+		statusCode = response.StatusCode
+		sentry.Breadcrumb(ctx, fmt.Sprintf("[%d] status code: %d", i+1, statusCode))
+		if statusCode == http.StatusOK {
+			return response.Body, nil
+		}
+
+		err = response.Body.Close()
+		if err != nil {
+			sentry.Breadcrumb(ctx, fmt.Sprintf("[%d] failed to close body: %v", i+1, err), sentry.LevelError)
+		}
+	}
+	return nil, errors.New("internet failure")
 }
 
 func downloadFromURL(ctx context.Context, url string, path string) error {

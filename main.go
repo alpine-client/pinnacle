@@ -17,9 +17,10 @@ var (
 
 //go:embed assets/*
 var assets embed.FS
+var sentryDSN string
 
 func main() {
-	sentry.Start(version)
+	sentry.Start(version, sentryDSN)
 	defer sentry.Flush(2 * time.Second)
 
 	Sys, Arch = systemInformation()
@@ -30,20 +31,19 @@ func main() {
 func Run() {
 	ctx := sentry.NewContext("Run")
 
-	err := os.MkdirAll(alpinePath(), os.ModePerm)
-	sentry.CaptureErrExit(ctx, err)
+	ui.Setup(ctx, assets)
 
-	window := ui.NewWindow(ctx, assets) // nil if panics
+	err := os.MkdirAll(alpinePath(), os.ModePerm)
+	if err != nil {
+		ui.DisplayError(ctx, err)
+		return
+	}
 
 	done := make(chan bool)
-	go runTasks(window, done)
+	go runTasks(done)
 
-	if window != nil {
-		window.Run(ui.RenderDefault)
-	} else {
-		dialog := ui.NewZenityWindow(ctx)
-		<-done
+	ui.Render()
 
-		_ = dialog.Complete()
-	}
+	<-done
+	ui.Close()
 }
