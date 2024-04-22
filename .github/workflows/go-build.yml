@@ -7,7 +7,6 @@ on:
       - 'test/**'
     paths:
       - 'VERSION'
-      - 'README.md'
 
 permissions:
   contents: write
