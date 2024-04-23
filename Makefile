@@ -11,9 +11,9 @@ audit:
 
 build: clean
 ifeq ($(DSN),)
-	CGO_ENABLED=1 go build -race -trimpath -ldflags="-s -w -X main.version=dev" -o bin/${PROJECT}-dev.bin .
+	CGO_ENABLED=1 go build -trimpath -ldflags="-s -w -X main.version=dev" -o bin/${PROJECT}-dev.bin .
 else
-	CGO_ENABLED=1 go build -race -trimpath -ldflags="-s -w -X main.version=dev -X main.sentryDSN=${DSN}" -o bin/${PROJECT}-dev.bin .
+	CGO_ENABLED=1 go build -trimpath -ldflags="-s -w -X main.version=dev -X main.sentryDSN=${DSN}" -o bin/${PROJECT}-dev.bin .
 endif
 
 clean:
