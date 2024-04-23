@@ -29,23 +29,36 @@ type JreManifest struct {
 }
 
 func runTasks(done chan bool) {
-	tasks := []struct {
-		name string
-		task func(context.Context) error
-	}{
-		{"checkJRE", checkJRE},
-		{"checkLauncher", checkLauncher},
-		{"runLauncher", runLauncher},
-	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	for _, t := range tasks {
-		ctx := sentry.NewContext(t.name)
-		err := t.task(ctx)
-		if err != nil {
-			ui.Close()
-			ui.DisplayError(ctx, err)
+	errChan := make(chan error, 2)
+
+	go func() {
+		errChan <- checkJRE(ctx)
+	}()
+	go func() {
+		errChan <- checkLauncher(ctx)
+	}()
+
+	// Check errors from both tasks
+	var taskError error
+	for range 2 {
+		if err := <-errChan; err != nil {
+			taskError = err
+			cancel()
 			break
 		}
+	}
+	close(errChan)
+
+	if taskError != nil {
+		ui.Close()
+		ui.DisplayError(ctx, taskError)
+	} else {
+		err := runLauncher(ctx)
+		ui.Close()
+		ui.DisplayError(ctx, err)
 	}
 
 	done <- true
@@ -56,12 +69,15 @@ func fetchMetadata(ctx context.Context, url string) (*MetadataResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	defer func() {
 		sentry.CaptureErr(ctx, body.Close())
 	}()
+
 	sentry.Breadcrumb(ctx, "decoding response from "+url)
 	var res MetadataResponse
-	if err = json.NewDecoder(body).Decode(&res); err != nil {
+	err = json.NewDecoder(body).Decode(&res)
+	if err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -75,17 +91,22 @@ func fileHashMatches(ctx context.Context, hash string, path string) bool {
 	defer func() {
 		sentry.CaptureErr(ctx, file.Close())
 	}()
+
 	sha := sha1.New()
-	if _, err = io.Copy(sha, file); err != nil {
+	_, err = io.Copy(sha, file)
+	if err != nil {
 		return false
 	}
+
 	if hex.EncodeToString(sha.Sum(nil)) == hash {
 		return true
 	}
 	return false
 }
 
-func checkLauncher(ctx context.Context) error {
+func checkLauncher(c context.Context) error {
+	ctx := sentry.NewContext(c, "checkLauncher")
+
 	ui.UpdateProgress(5, "Validating launcher...")
 	sentry.Breadcrumb(ctx, "fetching metadata from /pinnacle")
 
@@ -123,18 +144,21 @@ func downloadLauncher(ctx context.Context, manifest *MetadataResponse, dest stri
 	if err != nil {
 		return err
 	}
+
 	ui.UpdateProgress(20, "Verifying launcher hash...")
 	if !fileHashMatches(ctx, manifest.Hash, dest) {
 		sentry.Breadcrumb(ctx, "failed checksum validation after download", sentry.LevelError)
 		return errors.New("fatal error")
 	}
+
 	ui.UpdateProgress(5, "Preparing to start launcher...")
 	return nil
 }
 
-func checkJRE(ctx context.Context) error {
-	path := alpinePath("jre", "17")
+func checkJRE(c context.Context) error {
+	ctx := sentry.NewContext(c, "checkJRE")
 
+	path := alpinePath("jre", "17")
 	sentry.Breadcrumb(ctx, "mkdir "+path)
 	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
@@ -234,7 +258,9 @@ func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 	return nil
 }
 
-func runLauncher(ctx context.Context) error {
+func runLauncher(c context.Context) error {
+	ctx := sentry.NewContext(c, "runLauncher")
+
 	jarPath := alpinePath("launcher.jar")
 	jrePath := alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable())
 
@@ -260,19 +286,20 @@ func runLauncher(ctx context.Context) error {
 		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
 	}
 
+	ui.UpdateProgress(int(ui.TotalSteps))
+
 	sentry.Breadcrumb(ctx, fmt.Sprintf("starting launcher process: %s %s", jrePath, args))
 	proc, err := os.StartProcess(jrePath, args, processAttr)
 	if err != nil {
 		return err
 	}
-	ui.UpdateProgress(20)
 
 	sentry.Breadcrumb(ctx, "releasing launcher process")
 	err = proc.Release()
 	if err != nil {
 		return err
 	}
-	ui.UpdateProgress(int(ui.TotalSteps))
+
 	return nil
 }
 
@@ -284,16 +311,21 @@ func unzipAll(ctx context.Context, src string, dest string) error {
 	defer func() {
 		sentry.CaptureErr(ctx, zipReader.Close())
 	}()
-	if err = os.MkdirAll(dest, os.ModePerm); err != nil {
+
+	err = os.MkdirAll(dest, os.ModePerm)
+	if err != nil {
 		return err
 	}
+
 	count := len(zipReader.File)
 	for i, file := range zipReader.File {
 		ui.UpdateProgress(1, fmt.Sprintf("Extracting java (%d/%d)...", i, count))
+
 		parts := strings.Split(file.Name, "/")
 		if len(parts) > 1 {
-			parts = parts[1:]
+			parts = parts[1:] // strip components
 		}
+
 		fPath := filepath.Join(dest, filepath.Join(parts...))
 		if file.FileInfo().IsDir() {
 			if err = os.MkdirAll(fPath, os.ModePerm); err != nil {
@@ -301,7 +333,9 @@ func unzipAll(ctx context.Context, src string, dest string) error {
 			}
 			continue
 		}
-		if err = os.MkdirAll(filepath.Dir(fPath), os.ModePerm); err != nil {
+
+		err = os.MkdirAll(filepath.Dir(fPath), os.ModePerm)
+		if err != nil {
 			return err
 		}
 

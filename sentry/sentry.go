@@ -36,9 +36,9 @@ func Flush(timeout time.Duration) {
 
 type contextKey string
 
-func NewContext(task string) context.Context {
+func NewContext(parent context.Context, task string) context.Context {
 	if !enabled {
-		return context.Background()
+		return parent
 	}
 	name, _ := os.Hostname()
 	localHub := sentry.CurrentHub().Clone()
@@ -49,7 +49,7 @@ func NewContext(task string) context.Context {
 		scope.SetUser(sentry.User{Name: name})
 		scope.SetLevel(sentry.LevelInfo)
 	})
-	ctx := context.WithValue(context.Background(), contextKey("task"), task)
+	ctx := context.WithValue(parent, contextKey("task"), task)
 	return sentry.SetHubOnContext(ctx, localHub)
 }
 
@@ -57,12 +57,14 @@ func Breadcrumb(ctx context.Context, desc string, level ...sentry.Level) {
 	if !enabled {
 		return
 	}
+
 	var lvl sentry.Level
 	if len(level) == 0 {
 		lvl = sentry.LevelInfo
 	} else {
 		lvl = level[0]
 	}
+
 	if hub := sentry.GetHubFromContext(ctx); hub != nil {
 		hub.AddBreadcrumb(&sentry.Breadcrumb{
 			Category: ctx.Value(contextKey("task")).(string),

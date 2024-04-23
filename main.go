@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"os"
 	"time"
@@ -29,7 +30,8 @@ func main() {
 }
 
 func Run() {
-	ctx := sentry.NewContext("Run")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	ui.Setup(ctx, assets)
 
@@ -45,5 +47,5 @@ func Run() {
 	ui.Render()
 
 	<-done
-	ui.Close()
+	close(done)
 }

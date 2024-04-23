@@ -5,13 +5,13 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"github.com/alpine-client/pinnacle/sentry"
 	"image"
 	"image/color"
 	"image/png"
 	"sync"
 
 	"github.com/AllenDang/giu"
+	"github.com/alpine-client/pinnacle/sentry"
 	"github.com/ncruces/zenity"
 )
 
