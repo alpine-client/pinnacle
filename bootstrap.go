@@ -57,10 +57,14 @@ func runTasks(done chan bool) {
 	close(results)
 
 	if failed != nil {
+		cleanup()
 		ui.Close()
 		ui.DisplayError(failed.ctx, failed.err)
 	} else {
 		start := runLauncher(ctx)
+		if start.err != nil {
+			cleanup()
+		}
 		ui.Close()
 		ui.DisplayError(start.ctx, start.err)
 	}
@@ -305,4 +309,9 @@ func runLauncher(c context.Context) TaskResult {
 	}
 
 	return TaskResult{ctx, nil}
+}
+
+func cleanup() {
+	_ = os.RemoveAll(alpinePath("launcher.jar"))
+	_ = os.RemoveAll(alpinePath("jre", "17"))
 }
