@@ -18,16 +18,21 @@ const (
 )
 
 func Start(release string, dsn string) {
-	if err := sentry.Init(sentry.ClientOptions{
+	if dsn == "" {
+		log.Println("missing sentry DSN")
+		return
+	}
+	err := sentry.Init(sentry.ClientOptions{
 		Dsn:       dsn,
 		Release:   "pinnacle@" + release,
 		Transport: sentry.NewHTTPSyncTransport(),
-	}); err != nil {
-		log.Printf("unable to start sentry: %v", err)
+	})
+	if err != nil {
 		// TODO: log to file
-	} else {
-		enabled = true
+		log.Printf("unable to start sentry: %v", err)
+		return
 	}
+	enabled = true
 }
 
 func Flush(timeout time.Duration) {

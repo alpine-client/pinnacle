@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os/exec"
 	"runtime"
+	"time"
 
 	"github.com/alpine-client/pinnacle/sentry"
 	"github.com/ncruces/zenity"
@@ -22,6 +23,8 @@ func DisplayError(ctx context.Context, err error) {
 	if id := sentry.CaptureErr(ctx, err); id != nil {
 		message += "\n\nCode: " + string(*id)
 	}
+
+	sentry.Flush(2 * time.Second)
 
 	choice := zenity.Error(
 		message+"\n\nJoin our Discord for help.",
