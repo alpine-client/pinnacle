@@ -1,7 +1,6 @@
 package main
 
 import (
-	"archive/zip"
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
@@ -10,8 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/alpine-client/pinnacle/sentry"
 	"github.com/alpine-client/pinnacle/ui"
@@ -233,7 +230,7 @@ func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 	ui.UpdateProgress(5)
 
 	sentry.Breadcrumb(ctx, "extracting zip "+zipPath)
-	err = unzipAll(ctx, zipPath, extractedPath)
+	err = extractAll(ctx, zipPath, extractedPath)
 	if err != nil {
 		return err
 	}
@@ -300,67 +297,5 @@ func runLauncher(c context.Context) error {
 		return err
 	}
 
-	return nil
-}
-
-func unzipAll(ctx context.Context, src string, dest string) error {
-	zipReader, err := zip.OpenReader(src)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		sentry.CaptureErr(ctx, zipReader.Close())
-	}()
-
-	err = os.MkdirAll(dest, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	count := len(zipReader.File)
-	for i, file := range zipReader.File {
-		ui.UpdateProgress(1, fmt.Sprintf("Extracting java (%d/%d)...", i, count))
-
-		parts := strings.Split(file.Name, "/")
-		if len(parts) > 1 {
-			parts = parts[1:] // strip components
-		}
-
-		fPath := filepath.Join(dest, filepath.Join(parts...))
-		if file.FileInfo().IsDir() {
-			if err = os.MkdirAll(fPath, os.ModePerm); err != nil {
-				return err
-			}
-			continue
-		}
-
-		err = os.MkdirAll(filepath.Dir(fPath), os.ModePerm)
-		if err != nil {
-			return err
-		}
-
-		var outFile *os.File
-		outFile, err = os.OpenFile(fPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
-		if err != nil {
-			return err
-		}
-
-		var rc io.ReadCloser
-		rc, err = file.Open()
-		if err != nil {
-			sentry.CaptureErr(ctx, outFile.Close())
-			return err
-		}
-
-		if _, err = io.Copy(outFile, rc); err != nil {
-			return err
-		}
-		if err = outFile.Close(); err != nil {
-			return err
-		}
-		if err = rc.Close(); err != nil {
-			return err
-		}
-	}
 	return nil
 }
