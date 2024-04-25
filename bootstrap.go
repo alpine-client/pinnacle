@@ -25,37 +25,44 @@ type JreManifest struct {
 	Size uint32 `json:"size"`
 }
 
+type TaskResult struct {
+	ctx context.Context
+	err error
+}
+
 func runTasks(done chan bool) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	errChan := make(chan error, 2)
+	results := make(chan TaskResult, 2)
 
 	go func() {
-		errChan <- checkJRE(ctx)
+		results <- checkJRE(ctx)
 	}()
 	go func() {
-		errChan <- checkLauncher(ctx)
+		results <- checkLauncher(ctx)
 	}()
 
 	// Check errors from both tasks
-	var taskError error
+	var res TaskResult
+	var failed *TaskResult
 	for range 2 {
-		if err := <-errChan; err != nil {
-			taskError = err
+		res = <-results
+		if res.err != nil {
+			failed = &res
 			cancel()
 			break
 		}
 	}
-	close(errChan)
+	close(results)
 
-	if taskError != nil {
+	if failed != nil {
 		ui.Close()
-		ui.DisplayError(ctx, taskError)
+		ui.DisplayError(failed.ctx, failed.err)
 	} else {
-		err := runLauncher(ctx)
+		start := runLauncher(ctx)
 		ui.Close()
-		ui.DisplayError(ctx, err)
+		ui.DisplayError(start.ctx, start.err)
 	}
 
 	done <- true
@@ -101,7 +108,7 @@ func fileHashMatches(ctx context.Context, hash string, path string) bool {
 	return false
 }
 
-func checkLauncher(c context.Context) error {
+func checkLauncher(c context.Context) TaskResult {
 	ctx := sentry.NewContext(c, "checkLauncher")
 
 	ui.UpdateProgress(5, "Validating launcher...")
@@ -109,7 +116,7 @@ func checkLauncher(c context.Context) error {
 
 	launcher, err := fetchMetadata(ctx, MetadataURL+"/pinnacle")
 	if err != nil {
-		return err
+		return TaskResult{ctx, err}
 	}
 
 	targetPath := alpinePath("launcher.jar")
@@ -125,15 +132,15 @@ func checkLauncher(c context.Context) error {
 
 	ui.UpdateProgress(25, "Preparing to start launcher...")
 	sentry.Breadcrumb(ctx, "finished checkLauncher (jar existed)")
-	return nil
+	return TaskResult{ctx, nil}
 
 DOWNLOAD:
 	err = downloadLauncher(ctx, launcher, targetPath)
 	if err != nil {
-		return err
+		return TaskResult{ctx, err}
 	}
 	sentry.Breadcrumb(ctx, "finished checkLauncher (jar downloaded)")
-	return nil
+	return TaskResult{ctx, nil}
 }
 
 func downloadLauncher(ctx context.Context, manifest *MetadataResponse, dest string) error {
@@ -152,14 +159,14 @@ func downloadLauncher(ctx context.Context, manifest *MetadataResponse, dest stri
 	return nil
 }
 
-func checkJRE(c context.Context) error {
+func checkJRE(c context.Context) TaskResult {
 	ctx := sentry.NewContext(c, "checkJRE")
 
 	path := alpinePath("jre", "17")
 	sentry.Breadcrumb(ctx, "mkdir "+path)
 	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
-		return err
+		return TaskResult{ctx, err}
 	}
 	ui.UpdateProgress(5, "Fetching metadata...")
 
@@ -167,7 +174,7 @@ func checkJRE(c context.Context) error {
 	sentry.Breadcrumb(ctx, "fetching manifest from "+endpoint)
 	jre, err := fetchMetadata(ctx, endpoint)
 	if err != nil {
-		return err
+		return TaskResult{ctx, err}
 	}
 	ui.UpdateProgress(15, "Validating java...")
 
@@ -200,15 +207,15 @@ func checkJRE(c context.Context) error {
 
 	ui.UpdateProgress(340)
 	sentry.Breadcrumb(ctx, "finished checkJRE (existed)")
-	return nil
+	return TaskResult{ctx, nil}
 
 DOWNLOAD:
 	err = downloadJRE(ctx, jre)
 	if err != nil {
-		return err
+		return TaskResult{ctx, nil}
 	}
 	sentry.Breadcrumb(ctx, "finished checkJRE (downloaded)")
-	return nil
+	return TaskResult{ctx, nil}
 }
 
 func downloadJRE(ctx context.Context, m *MetadataResponse) error {
@@ -255,7 +262,7 @@ func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 	return nil
 }
 
-func runLauncher(c context.Context) error {
+func runLauncher(c context.Context) TaskResult {
 	ctx := sentry.NewContext(c, "runLauncher")
 
 	jarPath := alpinePath("launcher.jar")
@@ -288,14 +295,14 @@ func runLauncher(c context.Context) error {
 	sentry.Breadcrumb(ctx, fmt.Sprintf("starting launcher process: %s %s", jrePath, args))
 	proc, err := os.StartProcess(jrePath, args, processAttr)
 	if err != nil {
-		return err
+		return TaskResult{ctx, err}
 	}
 
 	sentry.Breadcrumb(ctx, "releasing launcher process")
 	err = proc.Release()
 	if err != nil {
-		return err
+		return TaskResult{ctx, err}
 	}
 
-	return nil
+	return TaskResult{ctx, nil}
 }
