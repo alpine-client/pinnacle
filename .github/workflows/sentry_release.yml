@@ -1,0 +1,29 @@
+name: Create Sentry Release
+
+on:
+  release:
+    types:
+      - 'published'
+
+jobs:
+  create_sentry_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Create sentry.io release
+        uses: getsentry/action-release@v1.7.0
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: pinnacle
+        with:
+          environment: production
+          version: ${{ env.VERSION }}
