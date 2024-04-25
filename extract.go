@@ -39,7 +39,7 @@ func extractSymLink(ctx context.Context, file *zip.File, target string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("created symlink %s", target)
+
 	return nil
 }
 
