@@ -150,7 +150,7 @@ jobs:
 
       - name: Decode certificate
         run: |
-          echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
+          echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-code-certificate.pem
 
       - name: Sign Windows binary # temp failure for testing
         run: >-
