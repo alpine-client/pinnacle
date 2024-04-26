@@ -149,7 +149,7 @@ jobs:
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign Windows binary # temp failure for testing
+      - name: Sign Windows binary
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -248,10 +248,42 @@ jobs:
           echo "AMD_ISS=${AMD_ISS}" >> $GITHUB_ENV
           # echo "ARM_ISS=${ARM_ISS}" >> $GITHUB_ENV
 
-      - name: Package with Inno Setup
+      - name: Package with InnoSetup
         run: |
           iscc.exe "$AMD_ISS"
           # iscc.exe "$ARM_ISS"
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c # v2.1.2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
+
+      - name: Download jsign
+        run: |
+          set -eux
+          url="https://github.com/ebourg/jsign/releases/download/${JSIGN_VERSION}/jsign-${JSIGN_VERSION}.jar"
+          sha256="${JSIGN_SHA256}"
+          curl -sSL ${url} -o jsign.jar
+          echo ${sha256} jsign.jar | sha256sum -c -
+
+      - name: Decode certificate
+        run: |
+          echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
+
+      - name: Sign Windows installer
+        run: >-
+          java -jar jsign.jar
+          --storetype GOOGLECLOUD
+          --storepass "$(gcloud auth print-access-token)"
+          --keystore "${{ secrets.GCP_KEYSTORE }}"
+          --alias "${{ secrets.GCP_KEY_ALIAS }}"
+          --certfile pinnacle-certificate.pem
+          --tsmode RFC3161
+          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
+          "build/out/AlpineClientSetup-${VERSION}-x86_64.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
