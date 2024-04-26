@@ -6,7 +6,7 @@ on:
       - 'master'
       - 'test/**'
     paths:
-      - 'VERSION'
+      - 'go-build.yml'
 
 permissions:
   contents: write
@@ -25,7 +25,9 @@ jobs:
     env:
       CGO_ENABLED: 1
       ZIG_VERSION: 0.11.0
+      JSIGN_VERSION: 6.0
       ZIG_SHA256: 2d00e789fec4f71790a6e7bf83ff91d564943c5ee843c5fd966efc474b423047
+      JSIGN_SHA256: 05ca18d4ab7b8c2183289b5378d32860f0ea0f3bdab1f1b8cae5894fb225fa8a
 
     steps:
       - name: Checkout code
@@ -129,6 +131,38 @@ jobs:
 #          -ldflags "-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
 #          -o bin/pinnacle-windows-arm64.exe
 #          .
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c # v2.1.2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
+
+      - name: Download jsign
+        run: |
+          set -eux
+          url="https://github.com/ebourg/jsign/releases/download/${JSIGN_VERSION}/jsign-${JSIGN_VERSION}.jar"
+          sha256="${JSIGN_SHA256}"
+          curl -sSL ${url} -o jsign.jar
+          echo ${sha256} jsign.jar | sha256sum -c -
+
+      - name: Decode certificate
+        run: |
+          echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
+
+      - name: Sign Windows binary # temp failure for testing
+        run: >-
+          java -jar jsign.jar
+          --storetype GOOGLECLOUD
+          --storepass "$(gcloud auth print-access-token)
+          --keystore "${{ secrets.GCP_KEYSTORE }}"
+          --alias "${{ secrets.GCP_KEY_ALIAS }}"
+          --certfile not-pinnacle-certificate.pem
+          --tsmode RFC3161
+          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
+          bin/pinnacle-windows-amd64.exe
 
       - name: Upload artifact
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
@@ -432,7 +466,7 @@ jobs:
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
       - name: Download
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           path: all
 

@@ -32,3 +32,4 @@ dist/
 
 # Env
 SENTRY
+gha-creds-*.json
