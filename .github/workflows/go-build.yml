@@ -156,7 +156,7 @@ jobs:
           --storepass "$(gcloud auth print-access-token)"
           --keystore "${{ secrets.GCP_KEYSTORE }}"
           --alias "${{ secrets.GCP_KEY_ALIAS }}"
-          --certfile not-pinnacle-certificate.pem
+          --certfile pinnacle-certificate.pem
           --tsmode RFC3161
           --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
           bin/pinnacle-windows-amd64.exe
