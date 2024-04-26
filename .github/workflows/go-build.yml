@@ -153,10 +153,10 @@ jobs:
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
-          --storepass "$(gcloud auth print-access-token)
+          --storepass "$(gcloud auth print-access-token)"
           --keystore "${{ secrets.GCP_KEYSTORE }}"
           --alias "${{ secrets.GCP_KEY_ALIAS }}"
-          --certfile pinnacle-certificate.pem
+          --certfile not-pinnacle-certificate.pem
           --tsmode RFC3161
           --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
           bin/pinnacle-windows-amd64.exe
