@@ -3,10 +3,7 @@ name: Build and Package
 on:
   push:
     branches:
-      - 'master'
       - 'test/**'
-    paths:
-      - '*.yml'
 
 permissions:
   contents: write
