@@ -2,8 +2,7 @@ name: Create Sentry Release
 
 on:
   release:
-    types:
-      - 'published'
+    types: [released]
 
 jobs:
   create_sentry_release:
