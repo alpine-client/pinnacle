@@ -91,6 +91,7 @@ func getFromURL(ctx context.Context, url string) (io.ReadCloser, error) {
 	var statusCode int
 
 	for i := range maxAttempts {
+		ui.UpdateProgress(1)
 		if i > 0 {
 			<-time.After(time.Second * time.Duration(2<<i)) // Exponential backoff
 		}
