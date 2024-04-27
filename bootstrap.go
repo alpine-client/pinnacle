@@ -61,6 +61,7 @@ func runTasks(done chan bool) {
 		ui.Close()
 		ui.DisplayError(failed.ctx, failed.err)
 	} else {
+		ui.UpdateProgress(int(ui.TotalSteps))
 		start := runLauncher(ctx)
 		if start.err != nil {
 			cleanup()
@@ -294,7 +295,6 @@ func runLauncher(c context.Context) TaskResult {
 		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
 	}
 
-	ui.UpdateProgress(int(ui.TotalSteps))
 
 	sentry.Breadcrumb(ctx, fmt.Sprintf("starting launcher process: %s %s", jrePath, args))
 	proc, err := os.StartProcess(jrePath, args, processAttr)
