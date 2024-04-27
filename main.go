@@ -33,6 +33,10 @@ func Run() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	if isUpdateAvailable(ctx) {
+		ui.NotifyNewUpdate()
+	}
+
 	ui.Setup(ctx, assets)
 
 	err := os.MkdirAll(alpinePath(), os.ModePerm)

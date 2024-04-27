@@ -17,6 +17,7 @@ const (
 )
 
 const (
-	MetadataURL  string = "https://metadata.alpineclientprod.com"
-	SupportEmail string = "contact@crystaldev.co"
+	MetadataURL      string = "https://metadata.alpineclientprod.com"
+	GitHubReleaseURL string = "https://api.github.com/repos/alpine-client/pinnacle/releases/latest"
+	SupportEmail     string = "contact@crystaldev.co"
 )

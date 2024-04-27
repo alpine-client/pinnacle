@@ -2,14 +2,19 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
+
+	"github.com/alpine-client/pinnacle/ui"
 
 	"github.com/alpine-client/pinnacle/sentry"
 )
@@ -147,4 +152,43 @@ func downloadFromURL(ctx context.Context, url string, path string) error {
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+func isUpdateAvailable(c context.Context) bool {
+	req, err := http.NewRequestWithContext(c, http.MethodGet, GitHubReleaseURL, nil)
+	if err != nil {
+		return false
+	}
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	req.Header.Set("User-Agent", fmt.Sprintf("alpine-client/pinnacle/%s (%s)", version, SupportEmail))
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return false
+	}
+	defer func() {
+		if err = resp.Body.Close(); err != nil {
+			log.Printf("unable to close response body: %v", err)
+		}
+	}()
+
+	type details struct {
+		TagName    string `json:"tag_name"`
+		PreRelease bool   `json:"prerelease"`
+	}
+	var result details
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return false
+	}
+
+	if len(strings.Split(version, ".")) != 3 {
+		return false
+	}
+
+	if !result.PreRelease && version != result.TagName {
+		return true
+	}
+
+	return false
 }
