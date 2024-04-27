@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'master'
+      - 'test/**'
     paths:
       - 'VERSION'
 
@@ -30,10 +31,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
-#      - name: Add Arm64 repository
-#        run: |
-#          sudo sed -i -E 's|^deb ([^ ]+) (.*)$|deb [arch=amd64] \1 \2\ndeb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ \2|' /etc/apt/sources.list
-#          sudo dpkg --add-architecture arm64
+      - name: Add Arm64 repository
+        run: |
+          sudo sed -i -E 's|^deb ([^ ]+) (.*)$|deb [arch=amd64] \1 \2\ndeb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ \2|' /etc/apt/sources.list
+          sudo dpkg --add-architecture arm64
 
       - name: Install dependencies
         run: >-
@@ -47,14 +48,14 @@ jobs:
           libxcursor-dev
           libxinerama-dev
           libxkbcommon-dev
-#          libgl-dev:arm64
-#          libx11-dev:arm64
-#          libxrandr-dev:arm64
-#          libxxf86vm-dev:arm64
-#          libxi-dev:arm64
-#          libxcursor-dev:arm64
-#          libxinerama-dev:arm64
-#          libxkbcommon-dev:arm64
+          libgl-dev:arm64
+          libx11-dev:arm64
+          libxrandr-dev:arm64
+          libxxf86vm-dev:arm64
+          libxi-dev:arm64
+          libxcursor-dev:arm64
+          libxinerama-dev:arm64
+          libxkbcommon-dev:arm64
 
       - name: Set up Go
         uses: WillAbides/setup-go-faster@a0ff5217a7d2567ed6ff1aa2b7d8f9d58173b2c9 # v1.14.0
@@ -90,16 +91,16 @@ jobs:
           -o bin/pinnacle-linux-amd64
           .
 
-#      - name: Build for Linux (arm64)
-#        run: >-
-#          env
-#          GOARCH=arm64
-#          CC="zig cc -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
-#          CXX="zig c++ -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
-#          go build -trimpath
-#          -ldflags="-X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-#          -o bin/pinnacle-linux-arm64
-#          .
+      - name: Build for Linux (arm64)
+        run: >-
+          env
+          GOARCH=arm64
+          CC="zig cc -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
+          CXX="zig c++ -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
+          go build -trimpath
+          -ldflags="-X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+          -o bin/pinnacle-linux-arm64
+          .
 
       - name: Copy syso files
         run: |
@@ -117,17 +118,17 @@ jobs:
           -o bin/pinnacle-windows-amd64.exe
           .
 
-#      - name: Build for Windows (arm64)
-#        run: >-
-#          env
-#          GOARCH=arm64
-#          GOOS=windows
-#          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-#          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-#          go build -trimpath
-#          -ldflags "-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-#          -o bin/pinnacle-windows-arm64.exe
-#          .
+      - name: Build for Windows (arm64)
+        run: >-
+          env
+          GOARCH=arm64
+          GOOS=windows
+          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+          go build -trimpath
+          -ldflags "-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+          -o bin/pinnacle-windows-arm64.exe
+          .
 
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c # v2.1.2
@@ -149,7 +150,7 @@ jobs:
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign Windows binary
+      - name: Sign Windows binary (amd64)
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -160,6 +161,18 @@ jobs:
           --tsmode RFC3161
           --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
           bin/pinnacle-windows-amd64.exe
+
+      - name: Sign Windows binary (arm64)
+        run: >-
+          java -jar jsign.jar
+          --storetype GOOGLECLOUD
+          --storepass "$(gcloud auth print-access-token)"
+          --keystore "${{ secrets.GCP_KEYSTORE }}"
+          --alias "${{ secrets.GCP_KEY_ALIAS }}"
+          --certfile pinnacle-certificate.pem
+          --tsmode RFC3161
+          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
+          bin/pinnacle-windows-arm64.exe
 
       - name: Upload artifact
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
@@ -235,20 +248,20 @@ jobs:
         run: |
           # Set variables for .iss file paths
           AMD_ISS=pkg/windows/iss/PackagePinnacle-amd64.iss
-          # ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
+          ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
 
           # Edit versions in iss files
           sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
-          # sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
+          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
 
           # Export env variables
           echo "AMD_ISS=${AMD_ISS}" >> $GITHUB_ENV
-          # echo "ARM_ISS=${ARM_ISS}" >> $GITHUB_ENV
+          echo "ARM_ISS=${ARM_ISS}" >> $GITHUB_ENV
 
       - name: Package with InnoSetup
         run: |
           iscc.exe "$AMD_ISS"
-          # iscc.exe "$ARM_ISS"
+          iscc.exe "$ARM_ISS"
 
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c # v2.1.2
@@ -270,7 +283,7 @@ jobs:
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign Windows installer
+      - name: Sign Windows x86_64 installer
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -281,6 +294,18 @@ jobs:
           --tsmode RFC3161
           --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
           "build/out/AlpineClientSetup-${VERSION}-x86_64.exe"
+
+      - name: Sign Windows ARM64 installer
+        run: >-
+          java -jar jsign.jar
+          --storetype GOOGLECLOUD
+          --storepass "$(gcloud auth print-access-token)"
+          --keystore "${{ secrets.GCP_KEYSTORE }}"
+          --alias "${{ secrets.GCP_KEY_ALIAS }}"
+          --certfile pinnacle-certificate.pem
+          --tsmode RFC3161
+          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
+          "build/out/AlpineClientSetup-${VERSION}-ARM64.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
@@ -358,36 +383,36 @@ jobs:
           --build ~/debbuild/alpine-client
           "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
 
-#      - name: Swap binaries
-#        run: |
-#          # Remove amd64 binaries
-#          rm -f ~/rpmbuild/SOURCES/pinnacle-darwin-amd64
-#          rm -f ~/debbuild/alpine-client/usr/bin/alpine-client
-#
-#          # Edit arch & binary name in spec/control files
-#          sed -i -e 's/linux-amd64/linux-arm64/g' -e 's/x86_64/aarch64/g' ~/rpmbuild/SPECS/pinnacle.spec
-#          sed -i 's/amd64/arm64/g' ~/debbuild/alpine-client/DEBIAN/control
-#
-#          # Copy arm64 binaries
-#          cp bin/pinnacle-linux-arm64 ~/rpmbuild/SOURCES/
-#          cp bin/pinnacle-linux-arm64 ~/debbuild/alpine-client/usr/bin/alpine-client
-#
-#          # Make binaries executable
-#          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-arm64
-#          chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
-#
-#      - name: Package .rpm (arm64)
-#        run: >-
-#          rpmbuild -bb
-#          ~/rpmbuild/SPECS/pinnacle.spec
-#          --define "_rpmdir build/out"
-#          --target=aarch64
-#
-#      - name: Package .deb (arm64)
-#        run: >-
-#          dpkg-deb -Zgzip
-#          --build ~/debbuild/alpine-client
-#          "build/out/alpine-client_${VERSION}-${RELEASE}_arm64.deb"
+      - name: Swap binaries
+        run: |
+          # Remove amd64 binaries
+          rm -f ~/rpmbuild/SOURCES/pinnacle-darwin-amd64
+          rm -f ~/debbuild/alpine-client/usr/bin/alpine-client
+
+          # Edit arch & binary name in spec/control files
+          sed -i -e 's/linux-amd64/linux-arm64/g' -e 's/x86_64/aarch64/g' ~/rpmbuild/SPECS/pinnacle.spec
+          sed -i 's/amd64/arm64/g' ~/debbuild/alpine-client/DEBIAN/control
+
+          # Copy arm64 binaries
+          cp bin/pinnacle-linux-arm64 ~/rpmbuild/SOURCES/
+          cp bin/pinnacle-linux-arm64 ~/debbuild/alpine-client/usr/bin/alpine-client
+
+          # Make binaries executable
+          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-arm64
+          chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
+
+      - name: Package .rpm (arm64)
+        run: >-
+          rpmbuild -bb
+          ~/rpmbuild/SPECS/pinnacle.spec
+          --define "_rpmdir build/out"
+          --target=aarch64
+
+      - name: Package .deb (arm64)
+        run: >-
+          dpkg-deb -Zgzip
+          --build ~/debbuild/alpine-client
+          "build/out/alpine-client_${VERSION}-${RELEASE}_arm64.deb"
 
       - name: Tidy artifact
         run: |
@@ -454,7 +479,7 @@ jobs:
           --install-location /Applications
           "build/out/AlpineClientSetup-${VERSION}-x86_64.pkg"
 
-      - name: Swap and64 binary for arm64
+      - name: Swap amd64 binary for arm64
         run: |
           rm -f "${APP}/MacOS/pinnacle-darwin-amd64"
           cp bin/pinnacle-darwin-arm64 "${APP}/MacOS/pinnacle-darwin-arm64"
