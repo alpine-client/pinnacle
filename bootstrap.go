@@ -304,7 +304,8 @@ func runLauncher(c context.Context) TaskResult {
 	}
 
 	processAttr := &os.ProcAttr{
-		Dir: alpinePath(),
+		Dir:   alpinePath(),
+		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
 	}
 
 	sentry.Breadcrumb(ctx, fmt.Sprintf("starting launcher process: %s %s", jrePath, args))
