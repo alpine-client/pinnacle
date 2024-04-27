@@ -185,7 +185,15 @@ func checkJRE(c context.Context) TaskResult {
 
 	var data []byte
 	var manifest JreManifest
+	javaPath := alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable())
 	manifestPath := alpinePath("jre", "17", "version.json")
+
+	if !fileExists(javaPath) {
+		sentry.Breadcrumb(ctx, "missing java executable")
+		goto DOWNLOAD
+	}
+	ui.UpdateProgress(2)
+
 	if !fileExists(manifestPath) {
 		sentry.Breadcrumb(ctx, "missing manifest")
 		goto DOWNLOAD
@@ -261,7 +269,7 @@ func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 	}
 	ui.UpdateProgress(5)
 
-	_ = os.Remove(zipPath) // failing to delete old zip won't break anything.
+	_ = os.Remove(zipPath)
 	sentry.Breadcrumb(ctx, "finished checkJRE (downloaded)")
 	ui.UpdateProgress(5)
 	return nil
@@ -294,7 +302,6 @@ func runLauncher(c context.Context) TaskResult {
 		Dir:   alpinePath(),
 		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
 	}
-
 
 	sentry.Breadcrumb(ctx, fmt.Sprintf("starting launcher process: %s %s", jrePath, args))
 	proc, err := os.StartProcess(jrePath, args, processAttr)
