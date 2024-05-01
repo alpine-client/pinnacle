@@ -23,9 +23,10 @@ func Start(release string, dsn string) {
 		return
 	}
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:       dsn,
-		Release:   "pinnacle@" + release,
-		Transport: sentry.NewHTTPSyncTransport(),
+		Dsn:              dsn,
+		AttachStacktrace: true,
+		Release:          "pinnacle@" + release,
+		Transport:        sentry.NewHTTPSyncTransport(),
 	})
 	if err != nil {
 		// TODO: log to file
