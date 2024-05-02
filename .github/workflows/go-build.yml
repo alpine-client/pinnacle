@@ -152,7 +152,7 @@ jobs:
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign Windows binary (amd64)
+      - name: Sign Windows AMD64 binary
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
