@@ -110,9 +110,11 @@ func isUpdateAvailable(c context.Context) bool {
 	}()
 
 	type details struct {
-		TagName    string `json:"tag_name"`
-		PreRelease bool   `json:"prerelease"`
+		TagName     string `json:"tag_name"`
+		PreRelease  bool   `json:"prerelease"`
+		PublishedAt string `json:"published_at"`
 	}
+
 	var result details
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
@@ -123,7 +125,21 @@ func isUpdateAvailable(c context.Context) bool {
 		return false
 	}
 
-	if !result.PreRelease && version != result.TagName {
+	if result.PreRelease {
+		return false
+	}
+
+	if version == result.TagName {
+		return false
+	}
+
+	published, err := time.Parse(time.RFC3339, result.PublishedAt)
+	if err != nil {
+		log.Printf("unable to parse publish date: %v", err)
+		return false
+	}
+
+	if published.UTC().Add(12 * time.Hour).Before(time.Now().UTC()) {
 		return true
 	}
 
