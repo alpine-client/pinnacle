@@ -23,6 +23,7 @@ env:
   ZIG_SHA256: '2d00e789fec4f71790a6e7bf83ff91d564943c5ee843c5fd966efc474b423047'
   JSIGN_VERSION: '6.0'
   JSIGN_SHA256: '05ca18d4ab7b8c2183289b5378d32860f0ea0f3bdab1f1b8cae5894fb225fa8a'
+  INCLUDE_WIN_ARM: 'false'
 
 jobs:
   build_windows_linux:
@@ -31,7 +32,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
-      - name: Add Arm64 repository
+      - name: Add ARM64 repository
         run: |
           sudo sed -i -E 's|^deb ([^ ]+) (.*)$|deb [arch=amd64] \1 \2\ndeb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ \2|' /etc/apt/sources.list
           sudo dpkg --add-architecture arm64
@@ -82,7 +83,7 @@ jobs:
           rm zig.tar.xz
           zig version
 
-      - name: Build for Linux (amd64)
+      - name: Build Linux AMD64
         run: >-
           env
           GOARCH=amd64
@@ -91,7 +92,7 @@ jobs:
           -o bin/pinnacle-linux-amd64
           .
 
-      - name: Build for Linux (arm64)
+      - name: Build Linux ARM64
         run: >-
           env
           GOARCH=arm64
@@ -106,7 +107,7 @@ jobs:
         run: |
           cp -r pkg/windows/syso/* .
 
-      - name: Build for Windows (amd64)
+      - name: Build Windows AMD64
         run: >-
           env
           GOARCH=amd64
@@ -118,7 +119,8 @@ jobs:
           -o bin/pinnacle-windows-amd64.exe
           .
 
-      - name: Build for Windows (arm64)
+      - name: Build Windows ARM64
+        if: env.INCLUDE_WIN_ARM == 'true'
         run: >-
           env
           GOARCH=arm64
@@ -162,7 +164,8 @@ jobs:
           --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
           bin/pinnacle-windows-amd64.exe
 
-      - name: Sign Windows binary (arm64)
+      - name: Sign Windows ARM64 binary
+        if: env.INCLUDE_WIN_ARM == 'true'
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -196,7 +199,7 @@ jobs:
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Build for amd64
+      - name: Build AMD64
         run: >-
           env
           GOARCH=amd64
@@ -206,7 +209,7 @@ jobs:
           -o bin/pinnacle-darwin-amd64
           .
 
-      - name: Build for arm64
+      - name: Build ARM64
         run: >-
           env
           GOARCH=arm64
@@ -244,23 +247,26 @@ jobs:
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Prepare for packaging
+      - name: Prepare AMD64 ISS
         run: |
-          # Set variables for .iss file paths
           AMD_ISS=pkg/windows/iss/PackagePinnacle-amd64.iss
-          ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
-
-          # Edit versions in iss files
           sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
-          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
-
-          # Export env variables
           echo "AMD_ISS=${AMD_ISS}" >> $GITHUB_ENV
+
+      - name: Prepare ARM64 ISS
+        if: env.INCLUDE_WIN_ARM == 'true'
+        run: |
+          ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
+          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
           echo "ARM_ISS=${ARM_ISS}" >> $GITHUB_ENV
 
-      - name: Package with InnoSetup
+      - name: Package AMD64 with InnoSetup
         run: |
           iscc.exe "$AMD_ISS"
+
+      - name: Package ARM64 with InnoSetup
+        if: env.INCLUDE_WIN_ARM == 'true'
+        run: |
           iscc.exe "$ARM_ISS"
 
       - name: Authenticate with Google Cloud
@@ -283,7 +289,7 @@ jobs:
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign Windows x86_64 installer
+      - name: Sign AMD64 installer
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -295,7 +301,8 @@ jobs:
           --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
           "build/out/AlpineClientSetup-${VERSION}-x86_64.exe"
 
-      - name: Sign Windows ARM64 installer
+      - name: Sign ARM64 installer
+        if: env.INCLUDE_WIN_ARM == 'true'
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -370,20 +377,20 @@ jobs:
           # Create output folder
           mkdir -p build/out
 
-      - name: Package .rpm (amd64)
+      - name: Package AMD64 RPM
         run: >-
           rpmbuild -bb
           ~/rpmbuild/SPECS/pinnacle.spec
           --define "_rpmdir build/out"
           --target=x86_64
 
-      - name: Package .deb (amd64)
+      - name: Package AMD64 DEB
         run: >-
           dpkg-deb -Zgzip
           --build ~/debbuild/alpine-client
           "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
 
-      - name: Swap binaries
+      - name: Swap AMD64 binary for ARM64
         run: |
           # Remove amd64 binaries
           rm -f ~/rpmbuild/SOURCES/pinnacle-darwin-amd64
@@ -401,14 +408,14 @@ jobs:
           chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-arm64
           chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
 
-      - name: Package .rpm (arm64)
+      - name: Package ARM64 RPM
         run: >-
           rpmbuild -bb
           ~/rpmbuild/SPECS/pinnacle.spec
           --define "_rpmdir build/out"
           --target=aarch64
 
-      - name: Package .deb (arm64)
+      - name: Package ARM64 DEB
         run: >-
           dpkg-deb -Zgzip
           --build ~/debbuild/alpine-client
@@ -470,7 +477,7 @@ jobs:
           # Export APP env for later
           echo "APP=${APP}" >> $GITHUB_ENV
 
-      - name: Package for amd64
+      - name: Package AMD64
         run: >-
           pkgbuild
           --root pkg/darwin
@@ -479,14 +486,14 @@ jobs:
           --install-location /Applications
           "build/out/AlpineClientSetup-${VERSION}-x86_64.pkg"
 
-      - name: Swap amd64 binary for arm64
+      - name: Swap AMD64 binary for ARM64
         run: |
           rm -f "${APP}/MacOS/pinnacle-darwin-amd64"
           cp bin/pinnacle-darwin-arm64 "${APP}/MacOS/pinnacle-darwin-arm64"
           sed -i '' 's/amd64/arm64/g' "${APP}/Info.plist"
           chmod +x "${APP}/MacOS/pinnacle-darwin-arm64"
 
-      - name: Package for arm64
+      - name: Package ARM64
         run: >-
           pkgbuild
           --root pkg/darwin
