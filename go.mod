@@ -1,6 +1,6 @@
 module github.com/alpine-client/pinnacle
 
-go 1.22.2
+go 1.22.3
 
 require (
 	github.com/AllenDang/giu v0.7.0
