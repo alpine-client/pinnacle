@@ -303,15 +303,20 @@ func runLauncher(c context.Context) TaskResult {
 		args = append(args, "--pinnacle-version", version)
 	}
 
-	processAttr := &os.ProcAttr{
+	procAttr := &os.ProcAttr{
 		Dir:   alpinePath(),
 		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
 	}
 
 	sentry.Breadcrumb(ctx, fmt.Sprintf("starting launcher process: %s %s", jrePath, args))
-	proc, err := os.StartProcess(jrePath, args, processAttr)
+	proc, err := os.StartProcess(jrePath, args, procAttr)
 	if err != nil {
-		return TaskResult{ctx, err}
+		sentry.Breadcrumb(ctx, fmt.Sprintf("failed to start launcher (retrying): %v", err))
+		// retry with regular java.exe
+		proc, err = os.StartProcess(alpinePath("jre", "17", "extracted", "bin", "java"), args, procAttr)
+		if err != nil {
+			return TaskResult{ctx, err}
+		}
 	}
 
 	sentry.Breadcrumb(ctx, "releasing launcher process")
