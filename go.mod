@@ -1,11 +1,11 @@
 module github.com/alpine-client/pinnacle
 
-go 1.22.3
+go 1.22.4
 
 require (
 	github.com/AllenDang/giu v0.7.0
 	github.com/AllenDang/imgui-go v1.12.1-0.20221124025851-59b862ca5a0c
-	github.com/getsentry/sentry-go v0.27.0
+	github.com/getsentry/sentry-go v0.28.0
 	github.com/ncruces/zenity v0.10.12
 )
 
@@ -22,8 +22,8 @@ require (
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
 	github.com/sahilm/fuzzy v0.1.1 // indirect
-	golang.org/x/image v0.16.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.15.0 // indirect
+	golang.org/x/image v0.17.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	gopkg.in/eapache/queue.v1 v1.1.0 // indirect
 )
