@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"embed"
 	"os"
 	"time"
 
@@ -16,8 +15,6 @@ var (
 	version string
 )
 
-//go:embed assets/*
-var assets embed.FS
 var sentryDSN string
 
 func main() {
@@ -36,8 +33,6 @@ func Run() {
 	if isUpdateAvailable(ctx) {
 		ui.NotifyNewUpdate()
 	}
-
-	ui.Setup(ctx, assets)
 
 	err := os.MkdirAll(alpinePath(), os.ModePerm)
 	if err != nil {
