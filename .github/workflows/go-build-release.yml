@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - 'master'
-      - 'test/**'
-    paths:
-      - 'VERSION'
+      - 'feat/**'
+#    paths:
+#      - 'VERSION'
 
 permissions:
   contents: write
@@ -92,90 +92,90 @@ jobs:
           -o bin/pinnacle-linux-amd64
           .
 
-      - name: Build Linux ARM64
-        run: >-
-          env
-          GOARCH=arm64
-          CC="zig cc -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
-          CXX="zig c++ -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
-          go build -trimpath
-          -ldflags="-X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-          -o bin/pinnacle-linux-arm64
-          .
+#      - name: Build Linux ARM64
+#        run: >-
+#          env
+#          GOARCH=arm64
+#          CC="zig cc -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
+#          CXX="zig c++ -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
+#          go build -trimpath
+#          -ldflags="-X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+#          -o bin/pinnacle-linux-arm64
+#          .
 
-      - name: Copy syso files
-        run: |
-          cp -r pkg/windows/syso/* .
-
-      - name: Build Windows AMD64
-        run: >-
-          env
-          GOARCH=amd64
-          GOOS=windows
-          CC="zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-          CXX="zig c++ -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-          go build -trimpath
-          -ldflags="-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-          -o bin/pinnacle-windows-amd64.exe
-          .
-
-      - name: Build Windows ARM64
-        if: env.INCLUDE_WIN_ARM == 'true'
-        run: >-
-          env
-          GOARCH=arm64
-          GOOS=windows
-          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-          go build -trimpath
-          -ldflags "-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-          -o bin/pinnacle-windows-arm64.exe
-          .
-
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c # v2.1.2
-        with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
-
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
-
-      - name: Download jsign
-        run: |
-          set -eux
-          url="https://github.com/ebourg/jsign/releases/download/${JSIGN_VERSION}/jsign-${JSIGN_VERSION}.jar"
-          sha256="${JSIGN_SHA256}"
-          curl -sSL ${url} -o jsign.jar
-          echo ${sha256} jsign.jar | sha256sum -c -
-
-      - name: Decode certificate
-        run: |
-          echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
-
-      - name: Sign Windows AMD64 binary
-        run: >-
-          java -jar jsign.jar
-          --storetype GOOGLECLOUD
-          --storepass "$(gcloud auth print-access-token)"
-          --keystore "${{ secrets.GCP_KEYSTORE }}"
-          --alias "${{ secrets.GCP_KEY_ALIAS }}"
-          --certfile pinnacle-certificate.pem
-          --tsmode RFC3161
-          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
-          bin/pinnacle-windows-amd64.exe
-
-      - name: Sign Windows ARM64 binary
-        if: env.INCLUDE_WIN_ARM == 'true'
-        run: >-
-          java -jar jsign.jar
-          --storetype GOOGLECLOUD
-          --storepass "$(gcloud auth print-access-token)"
-          --keystore "${{ secrets.GCP_KEYSTORE }}"
-          --alias "${{ secrets.GCP_KEY_ALIAS }}"
-          --certfile pinnacle-certificate.pem
-          --tsmode RFC3161
-          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
-          bin/pinnacle-windows-arm64.exe
+#      - name: Copy syso files
+#        run: |
+#          cp -r pkg/windows/syso/* .
+#
+#      - name: Build Windows AMD64
+#        run: >-
+#          env
+#          GOARCH=amd64
+#          GOOS=windows
+#          CC="zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+#          CXX="zig c++ -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+#          go build -trimpath
+#          -ldflags="-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+#          -o bin/pinnacle-windows-amd64.exe
+#          .
+#
+#      - name: Build Windows ARM64
+#        if: env.INCLUDE_WIN_ARM == 'true'
+#        run: >-
+#          env
+#          GOARCH=arm64
+#          GOOS=windows
+#          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+#          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+#          go build -trimpath
+#          -ldflags "-H=windowsgui -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+#          -o bin/pinnacle-windows-arm64.exe
+#          .
+#
+#      - name: Authenticate with Google Cloud
+#        uses: google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c # v2.1.2
+#        with:
+#          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+#
+#      - name: Set up Google Cloud SDK
+#        uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
+#
+#      - name: Download jsign
+#        run: |
+#          set -eux
+#          url="https://github.com/ebourg/jsign/releases/download/${JSIGN_VERSION}/jsign-${JSIGN_VERSION}.jar"
+#          sha256="${JSIGN_SHA256}"
+#          curl -sSL ${url} -o jsign.jar
+#          echo ${sha256} jsign.jar | sha256sum -c -
+#
+#      - name: Decode certificate
+#        run: |
+#          echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
+#
+#      - name: Sign Windows AMD64 binary
+#        run: >-
+#          java -jar jsign.jar
+#          --storetype GOOGLECLOUD
+#          --storepass "$(gcloud auth print-access-token)"
+#          --keystore "${{ secrets.GCP_KEYSTORE }}"
+#          --alias "${{ secrets.GCP_KEY_ALIAS }}"
+#          --certfile pinnacle-certificate.pem
+#          --tsmode RFC3161
+#          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
+#          bin/pinnacle-windows-amd64.exe
+#
+#      - name: Sign Windows ARM64 binary
+#        if: env.INCLUDE_WIN_ARM == 'true'
+#        run: >-
+#          java -jar jsign.jar
+#          --storetype GOOGLECLOUD
+#          --storepass "$(gcloud auth print-access-token)"
+#          --keystore "${{ secrets.GCP_KEYSTORE }}"
+#          --alias "${{ secrets.GCP_KEY_ALIAS }}"
+#          --certfile pinnacle-certificate.pem
+#          --tsmode RFC3161
+#          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
+#          bin/pinnacle-windows-arm64.exe
 
       - name: Upload artifact
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
@@ -184,142 +184,142 @@ jobs:
           path: bin
           retention-days: 1
 
-  build_macos:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-
-      - name: Set up Go
-        uses: WillAbides/setup-go-faster@a0ff5217a7d2567ed6ff1aa2b7d8f9d58173b2c9 # v1.14.0
-        with:
-          go-version-file: 'go.mod'
-
-      - name: Read version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-
-      - name: Build AMD64
-        run: >-
-          env
-          GOARCH=amd64
-          GOOS=darwin
-          go build -trimpath -buildmode=pie
-          -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-          -o bin/pinnacle-darwin-amd64
-          .
-
-      - name: Build ARM64
-        run: >-
-          env
-          GOARCH=arm64
-          GOOS=darwin
-          go build -trimpath -buildmode=pie
-          -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
-          -o bin/pinnacle-darwin-arm64
-          .
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        with:
-          name: macos-binaries
-          path: bin
-          retention-days: 1
-
-  package_windows:
-    runs-on: windows-latest
-    needs: build_windows_linux
-    steps:
-      - name: Checkout .iss files
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-        with:
-          sparse-checkout: |
-            pkg/windows
-            VERSION
-
-      - name: Download binaries
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-        with:
-          name: windows-linux-binaries
-          path: bin
-
-      - name: Read version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-
-      - name: Prepare AMD64 ISS
-        run: |
-          AMD_ISS=pkg/windows/iss/PackagePinnacle-amd64.iss
-          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
-          echo "AMD_ISS=${AMD_ISS}" >> $GITHUB_ENV
-
-      - name: Prepare ARM64 ISS
-        if: env.INCLUDE_WIN_ARM == 'true'
-        run: |
-          ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
-          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
-          echo "ARM_ISS=${ARM_ISS}" >> $GITHUB_ENV
-
-      - name: Package AMD64 with InnoSetup
-        run: |
-          iscc.exe "$AMD_ISS"
-
-      - name: Package ARM64 with InnoSetup
-        if: env.INCLUDE_WIN_ARM == 'true'
-        run: |
-          iscc.exe "$ARM_ISS"
-
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c # v2.1.2
-        with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
-
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
-
-      - name: Download jsign
-        run: |
-          set -eux
-          url="https://github.com/ebourg/jsign/releases/download/${JSIGN_VERSION}/jsign-${JSIGN_VERSION}.jar"
-          sha256="${JSIGN_SHA256}"
-          curl -sSL ${url} -o jsign.jar
-          echo ${sha256} jsign.jar | sha256sum -c -
-
-      - name: Decode certificate
-        run: |
-          echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
-
-      - name: Sign AMD64 installer
-        run: >-
-          java -jar jsign.jar
-          --storetype GOOGLECLOUD
-          --storepass "$(gcloud auth print-access-token)"
-          --keystore "${{ secrets.GCP_KEYSTORE }}"
-          --alias "${{ secrets.GCP_KEY_ALIAS }}"
-          --certfile pinnacle-certificate.pem
-          --tsmode RFC3161
-          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
-          "build/out/AlpineClientSetup-${VERSION}-x86_64.exe"
-
-      - name: Sign ARM64 installer
-        if: env.INCLUDE_WIN_ARM == 'true'
-        run: >-
-          java -jar jsign.jar
-          --storetype GOOGLECLOUD
-          --storepass "$(gcloud auth print-access-token)"
-          --keystore "${{ secrets.GCP_KEYSTORE }}"
-          --alias "${{ secrets.GCP_KEY_ALIAS }}"
-          --certfile pinnacle-certificate.pem
-          --tsmode RFC3161
-          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
-          "build/out/AlpineClientSetup-${VERSION}-ARM64.exe"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        with:
-          name: windows-installers
-          path: build/out
-          retention-days: 1
+#  build_macos:
+#    runs-on: macos-latest
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+#
+#      - name: Set up Go
+#        uses: WillAbides/setup-go-faster@a0ff5217a7d2567ed6ff1aa2b7d8f9d58173b2c9 # v1.14.0
+#        with:
+#          go-version-file: 'go.mod'
+#
+#      - name: Read version
+#        run: |
+#          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+#
+#      - name: Build AMD64
+#        run: >-
+#          env
+#          GOARCH=amd64
+#          GOOS=darwin
+#          go build -trimpath -buildmode=pie
+#          -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+#          -o bin/pinnacle-darwin-amd64
+#          .
+#
+#      - name: Build ARM64
+#        run: >-
+#          env
+#          GOARCH=arm64
+#          GOOS=darwin
+#          go build -trimpath -buildmode=pie
+#          -ldflags="-s -w -X main.version=${VERSION} -X main.sentryDSN=${SENTRY}"
+#          -o bin/pinnacle-darwin-arm64
+#          .
+#
+#      - name: Upload artifact
+#        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+#        with:
+#          name: macos-binaries
+#          path: bin
+#          retention-days: 1
+#
+#  package_windows:
+#    runs-on: windows-latest
+#    needs: build_windows_linux
+#    steps:
+#      - name: Checkout .iss files
+#        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+#        with:
+#          sparse-checkout: |
+#            pkg/windows
+#            VERSION
+#
+#      - name: Download binaries
+#        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+#        with:
+#          name: windows-linux-binaries
+#          path: bin
+#
+#      - name: Read version
+#        run: |
+#          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+#
+#      - name: Prepare AMD64 ISS
+#        run: |
+#          AMD_ISS=pkg/windows/iss/PackagePinnacle-amd64.iss
+#          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
+#          echo "AMD_ISS=${AMD_ISS}" >> $GITHUB_ENV
+#
+#      - name: Prepare ARM64 ISS
+#        if: env.INCLUDE_WIN_ARM == 'true'
+#        run: |
+#          ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
+#          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
+#          echo "ARM_ISS=${ARM_ISS}" >> $GITHUB_ENV
+#
+#      - name: Package AMD64 with InnoSetup
+#        run: |
+#          iscc.exe "$AMD_ISS"
+#
+#      - name: Package ARM64 with InnoSetup
+#        if: env.INCLUDE_WIN_ARM == 'true'
+#        run: |
+#          iscc.exe "$ARM_ISS"
+#
+#      - name: Authenticate with Google Cloud
+#        uses: google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c # v2.1.2
+#        with:
+#          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+#
+#      - name: Set up Google Cloud SDK
+#        uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
+#
+#      - name: Download jsign
+#        run: |
+#          set -eux
+#          url="https://github.com/ebourg/jsign/releases/download/${JSIGN_VERSION}/jsign-${JSIGN_VERSION}.jar"
+#          sha256="${JSIGN_SHA256}"
+#          curl -sSL ${url} -o jsign.jar
+#          echo ${sha256} jsign.jar | sha256sum -c -
+#
+#      - name: Decode certificate
+#        run: |
+#          echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
+#
+#      - name: Sign AMD64 installer
+#        run: >-
+#          java -jar jsign.jar
+#          --storetype GOOGLECLOUD
+#          --storepass "$(gcloud auth print-access-token)"
+#          --keystore "${{ secrets.GCP_KEYSTORE }}"
+#          --alias "${{ secrets.GCP_KEY_ALIAS }}"
+#          --certfile pinnacle-certificate.pem
+#          --tsmode RFC3161
+#          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
+#          "build/out/AlpineClientSetup-${VERSION}-x86_64.exe"
+#
+#      - name: Sign ARM64 installer
+#        if: env.INCLUDE_WIN_ARM == 'true'
+#        run: >-
+#          java -jar jsign.jar
+#          --storetype GOOGLECLOUD
+#          --storepass "$(gcloud auth print-access-token)"
+#          --keystore "${{ secrets.GCP_KEYSTORE }}"
+#          --alias "${{ secrets.GCP_KEY_ALIAS }}"
+#          --certfile pinnacle-certificate.pem
+#          --tsmode RFC3161
+#          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
+#          "build/out/AlpineClientSetup-${VERSION}-ARM64.exe"
+#
+#      - name: Upload artifact
+#        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+#        with:
+#          name: windows-installers
+#          path: build/out
+#          retention-days: 1
 
   package_linux:
     runs-on: [ ubuntu-latest ]
@@ -346,6 +346,7 @@ jobs:
           debhelper
           devscripts
           dpkg-dev
+          libfuse2
 
       - name: Read version
         run: |
@@ -353,29 +354,52 @@ jobs:
 
       - name: Prepare for packaging
         run: |
+          # Download AppImage tool
+          set -eux
+          url="https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+          curl -sSL ${url} -o appimagetool-x86_64.AppImage
+          chmod a+x appimagetool-x86_64.AppImage
+          
           # Edit version in specs/control files
           sed -i "s/^Version:.*/Version: ${VERSION}/" pkg/linux/rpm/SPECS/pinnacle.spec
           sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
           sed -i "s/^Version:.*/Version: ${VERSION}-${RELEASE}/" pkg/linux/deb/DEBIAN/control
 
-          # Set up rpmbuild/debbuild file tree
+          # Set up appbuild/rpmbuild/debbuild file tree
+          mkdir -p ~/appbuild/AlpineClient.AppDir/{lib,usr/share/icons/hicolor/scalable/apps}
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           mkdir -p ~/debbuild/alpine-client/{DEBIAN,usr/bin,usr/share/applications,usr/share/pixmaps}
 
           # Copy resources
+          cp -r pkg/linux/appimage/* ~/appbuild/AlpineClient.AppDir/
           cp -r pkg/linux/rpm/* ~/rpmbuild/
           cp -r pkg/linux/deb/* ~/debbuild/alpine-client/
+          
+          # Copy libc and libstdc++ for ChromeOS support
+          cp -p -r /usr/lib/x86_64-linux-gnu/* ~/appbuild/AlpineClient.AppDir/lib/
 
           # Copy binaries
+          cp bin/pinnacle-linux-amd64 ~/appbuild/AlpineClient.AppDir/alpine-client
           cp bin/pinnacle-linux-amd64 ~/rpmbuild/SOURCES/
           cp bin/pinnacle-linux-amd64 ~/debbuild/alpine-client/usr/bin/alpine-client
           
           # Make binaries executable
+          chmod +x ~/appbuild/AlpineClient.AppDir/alpine-client
+          chmod +x ~/appbuild/AlpineClient.AppDir/AppRun
           chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-amd64
           chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
 
           # Create output folder
           mkdir -p build/out
+
+      - name: Package AMD64 AppImage
+        run: >-
+          ./appimagetool-x86_64.AppImage ~/appbuild/AlpineClient.AppDir
+          "build/out/Alpine_Client-${VERSION}-${RELEASE}-x86_64.AppImage"
+
+      - name: Package AMD64 TAR
+        run: |
+          tar -cpvf "build/out/Alpine_Client-${VERSION}-${RELEASE}-x86_64.AppImage.tar" build/out
 
       - name: Package AMD64 RPM
         run: >-
@@ -434,83 +458,84 @@ jobs:
           name: linux-installers
           path: build/out
           retention-days: 1
-
-  package_macos:
-    runs-on: macos-latest
-    needs: build_macos
-    steps:
-      - name: Checkout pkg/darwin
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-        with:
-          sparse-checkout: |
-            pkg/darwin
-            VERSION
-
-      - name: Download binaries
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-        with:
-          name: macos-binaries
-          path: bin
-
-      - name: Read version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-
-      - name: Set up environment
-        run: |
-          # Set env variables for paths
-          APP="pkg/darwin/Alpine Client.app/Contents"
-
-          # Create necessary folders
-          mkdir "${APP}/MacOS"
-          mkdir -p build/out/
-
-          # Replace version in Info.plist files
-          sed -i '' "s/<string>1.0.0<\/string>/<string>${VERSION}<\/string>/" "${APP}/Info.plist"
-
-          # Move compiled binary
-          cp bin/pinnacle-darwin-amd64 "${APP}/MacOS/pinnacle-darwin-amd64"
-
-          # Set permissions
-          chmod +x "${APP}/MacOS/pinnacle-darwin-amd64"
-
-          # Export APP env for later
-          echo "APP=${APP}" >> $GITHUB_ENV
-
-      - name: Package AMD64
-        run: >-
-          pkgbuild
-          --root pkg/darwin
-          --identifier com.alpineclient.pinnacle
-          --version "${VERSION}"
-          --install-location /Applications
-          "build/out/AlpineClientSetup-${VERSION}-x86_64.pkg"
-
-      - name: Swap AMD64 binary for ARM64
-        run: |
-          rm -f "${APP}/MacOS/pinnacle-darwin-amd64"
-          cp bin/pinnacle-darwin-arm64 "${APP}/MacOS/pinnacle-darwin-arm64"
-          sed -i '' 's/amd64/arm64/g' "${APP}/Info.plist"
-          chmod +x "${APP}/MacOS/pinnacle-darwin-arm64"
-
-      - name: Package ARM64
-        run: >-
-          pkgbuild
-          --root pkg/darwin
-          --identifier com.alpineclient.pinnacle
-          --version "${VERSION}"
-          --install-location /Applications
-          "build/out/AlpineClientSetup-${VERSION}-ARM64.pkg"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        with:
-          name: macos-installers
-          path: build/out
-          retention-days: 1
+#
+#  package_macos:
+#    runs-on: macos-latest
+#    needs: build_macos
+#    steps:
+#      - name: Checkout pkg/darwin
+#        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+#        with:
+#          sparse-checkout: |
+#            pkg/darwin
+#            VERSION
+#
+#      - name: Download binaries
+#        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+#        with:
+#          name: macos-binaries
+#          path: bin
+#
+#      - name: Read version
+#        run: |
+#          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+#
+#      - name: Set up environment
+#        run: |
+#          # Set env variables for paths
+#          APP="pkg/darwin/Alpine Client.app/Contents"
+#
+#          # Create necessary folders
+#          mkdir "${APP}/MacOS"
+#          mkdir -p build/out/
+#
+#          # Replace version in Info.plist files
+#          sed -i '' "s/<string>1.0.0<\/string>/<string>${VERSION}<\/string>/" "${APP}/Info.plist"
+#
+#          # Move compiled binary
+#          cp bin/pinnacle-darwin-amd64 "${APP}/MacOS/pinnacle-darwin-amd64"
+#
+#          # Set permissions
+#          chmod +x "${APP}/MacOS/pinnacle-darwin-amd64"
+#
+#          # Export APP env for later
+#          echo "APP=${APP}" >> $GITHUB_ENV
+#
+#      - name: Package AMD64
+#        run: >-
+#          pkgbuild
+#          --root pkg/darwin
+#          --identifier com.alpineclient.pinnacle
+#          --version "${VERSION}"
+#          --install-location /Applications
+#          "build/out/AlpineClientSetup-${VERSION}-x86_64.pkg"
+#
+#      - name: Swap AMD64 binary for ARM64
+#        run: |
+#          rm -f "${APP}/MacOS/pinnacle-darwin-amd64"
+#          cp bin/pinnacle-darwin-arm64 "${APP}/MacOS/pinnacle-darwin-arm64"
+#          sed -i '' 's/amd64/arm64/g' "${APP}/Info.plist"
+#          chmod +x "${APP}/MacOS/pinnacle-darwin-arm64"
+#
+#      - name: Package ARM64
+#        run: >-
+#          pkgbuild
+#          --root pkg/darwin
+#          --identifier com.alpineclient.pinnacle
+#          --version "${VERSION}"
+#          --install-location /Applications
+#          "build/out/AlpineClientSetup-${VERSION}-ARM64.pkg"
+#
+#      - name: Upload artifact
+#        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+#        with:
+#          name: macos-installers
+#          path: build/out
+#          retention-days: 1
 
   create_github_release:
-    needs: [ package_windows, package_linux, package_macos ]
+    needs: [ package_linux ]
+#    needs: [ package_windows, package_linux, package_macos ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout version file
@@ -534,12 +559,25 @@ jobs:
 
           # Combine binaries
           cp -r all/windows-linux-binaries/* merged/binaries/
-          cp -r all/macos-binaries/* merged/binaries/
+          # cp -r all/macos-binaries/* merged/binaries/
 
           # Combine installers
-          cp -r all/windows-installers/* merged/installers/
-          cp -r all/macos-installers/* merged/installers/
+          # cp -r all/windows-installers/* merged/installers/
+          # cp -r all/macos-installers/* merged/installers/
           cp -r all/linux-installers/* merged/installers/
+
+#      - name: Reorganize artifacts
+#        run: |
+#          mkdir -p merged/{binaries,installers}
+#
+#          # Combine binaries
+#          cp -r all/windows-linux-binaries/* merged/binaries/
+#          cp -r all/macos-binaries/* merged/binaries/
+#
+#          # Combine installers
+#          cp -r all/windows-installers/* merged/installers/
+#          cp -r all/macos-installers/* merged/installers/
+#          cp -r all/linux-installers/* merged/installers/
 
       - name: Upload
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
