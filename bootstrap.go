@@ -255,10 +255,7 @@ func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 		return err
 	}
 
-	err = os.Chmod(alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable()), 0o755)
-	if err != nil {
-		sentry.CaptureErr(ctx, err)
-	}
+	_ = os.Chmod(alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable()), 0o755)
 
 	bytes, err := json.Marshal(JreManifest{Hash: m.Hash, Size: m.Size})
 	if err != nil {
