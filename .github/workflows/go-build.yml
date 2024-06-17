@@ -3,8 +3,9 @@ name: Build and Package
 on:
   push:
     branches:
-      - 'master'
       - 'ncgo'
+    paths:
+      - 'VERSION'
 
 permissions:
   contents: write
