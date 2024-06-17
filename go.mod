@@ -5,7 +5,7 @@ go 1.22.4
 require (
 	github.com/AllenDang/giu v0.7.0
 	github.com/AllenDang/imgui-go v1.12.1-0.20221124025851-59b862ca5a0c
-	github.com/getsentry/sentry-go v0.28.0
+	github.com/getsentry/sentry-go v0.28.1
 	github.com/ncruces/zenity v0.10.12
 )
 
