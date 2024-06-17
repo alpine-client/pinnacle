@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -92,10 +91,10 @@ func fetchMetadata(ctx context.Context, url string) (*MetadataResponse, error) {
 	return &res, nil
 }
 
-func fileHashMatches(ctx context.Context, hash string, path string) bool {
+func fileHashMatches(ctx context.Context, hash string, path string) (bool, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return false
+		return false, err
 	}
 	defer func() {
 		sentry.CaptureErr(ctx, file.Close())
@@ -104,13 +103,15 @@ func fileHashMatches(ctx context.Context, hash string, path string) bool {
 	sha := sha1.New()
 	_, err = io.Copy(sha, file)
 	if err != nil {
-		return false
+		return false, err
 	}
 
-	if hex.EncodeToString(sha.Sum(nil)) == hash {
-		return true
+	result := hex.EncodeToString(sha.Sum(nil))
+	if result == hash {
+		return true, nil
 	}
-	return false
+
+	return false, fmt.Errorf("hash mismatch: got %s expected %s", result, hash)
 }
 
 func checkLauncher(c context.Context) TaskResult {
@@ -130,7 +131,7 @@ func checkLauncher(c context.Context) TaskResult {
 		goto DOWNLOAD
 	}
 
-	if !fileHashMatches(ctx, launcher.Hash, targetPath) {
+	if validHash, _ := fileHashMatches(ctx, launcher.Hash, targetPath); !validHash {
 		sentry.Breadcrumb(ctx, "failed checksum validation")
 		goto DOWNLOAD
 	}
@@ -155,9 +156,20 @@ func downloadLauncher(ctx context.Context, manifest *MetadataResponse, dest stri
 	}
 
 	ui.UpdateProgress(20, "Verifying launcher hash...")
-	if !fileHashMatches(ctx, manifest.Hash, dest) {
-		sentry.Breadcrumb(ctx, "failed checksum validation after download", sentry.LevelError)
-		return errors.New("fatal error")
+	var validHash bool
+	if validHash, err = fileHashMatches(ctx, manifest.Hash, dest); !validHash {
+		sentry.Breadcrumb(ctx, fmt.Sprintf("hash mismatch after download (retrying): %v", err), sentry.LevelError)
+
+		_ = os.RemoveAll(dest)
+		err = downloadFromURL(ctx, manifest.URL, dest)
+		if err != nil {
+			return err
+		}
+
+		if validHash, err = fileHashMatches(ctx, manifest.Hash, dest); !validHash {
+			sentry.Breadcrumb(ctx, fmt.Sprintf("hash mismatch after download (fatal): %v", err), sentry.LevelError)
+			return err
+		}
 	}
 
 	ui.UpdateProgress(5, "Preparing to start launcher...")
@@ -166,27 +178,27 @@ func downloadLauncher(ctx context.Context, manifest *MetadataResponse, dest stri
 
 func checkJRE(c context.Context) TaskResult {
 	ctx := sentry.NewContext(c, "checkJRE")
-
 	path := alpinePath("jre", "17")
+
 	sentry.Breadcrumb(ctx, "mkdir "+path)
 	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		return TaskResult{ctx, err}
 	}
-	ui.UpdateProgress(5, "Fetching metadata...")
 
+	ui.UpdateProgress(5, "Fetching metadata...")
 	endpoint := fmt.Sprintf("%s/jre?version=17&os=%s&arch=%s", MetadataURL, Sys, Arch)
 	sentry.Breadcrumb(ctx, "fetching manifest from "+endpoint)
 	jre, err := fetchMetadata(ctx, endpoint)
 	if err != nil {
 		return TaskResult{ctx, err}
 	}
-	ui.UpdateProgress(15, "Validating java...")
 
 	var data []byte
 	var manifest JreManifest
 	javaPath := alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable())
 	manifestPath := alpinePath("jre", "17", "version.json")
+	ui.UpdateProgress(15, "Validating java...")
 
 	if !fileExists(javaPath) {
 		sentry.Breadcrumb(ctx, "missing java executable")
@@ -255,10 +267,7 @@ func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 		return err
 	}
 
-	err = os.Chmod(alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable()), 0o755)
-	if err != nil {
-		sentry.CaptureErr(ctx, err)
-	}
+	_ = os.Chmod(alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable()), 0o755)
 
 	bytes, err := json.Marshal(JreManifest{Hash: m.Hash, Size: m.Size})
 	if err != nil {
