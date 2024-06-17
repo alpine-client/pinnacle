@@ -3,7 +3,7 @@ module github.com/alpine-client/pinnacle
 go 1.22.4
 
 require (
-	github.com/getsentry/sentry-go v0.28.0
+	github.com/getsentry/sentry-go v0.28.1
 	github.com/ncruces/zenity v0.10.12
 )
 
