@@ -11,9 +11,9 @@ audit:
 
 build: clean
 ifeq ($(DSN),)
-	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=dev" -o bin/${PROJECT}-dev.bin .
+	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=dev" -o bin/pinnacle-dev.bin .
 else
-	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=dev -X main.sentryDSN=${DSN}" -o bin/${PROJECT}-dev.bin .
+	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=dev -X main.sentryDSN=${DSN}" -o bin/pinnacle-dev.bin .
 endif
 
 clean:
@@ -23,7 +23,7 @@ lint: tidy
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2 run ./...
 
 run: build
-	./bin/${PROJECT}-dev.bin
+	./bin/pinnacle-dev.bin
 
 tidy:
 	go mod tidy -v
