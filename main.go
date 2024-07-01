@@ -15,10 +15,8 @@ var (
 	version string
 )
 
-var sentryDSN string
-
 func main() {
-	sentry.Start(version, sentryDSN)
+	sentry.Start(version, fetchSentryDSN())
 	defer sentry.Flush(2 * time.Second)
 
 	Sys, Arch = systemInformation()
