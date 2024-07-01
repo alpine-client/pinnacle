@@ -91,6 +91,41 @@ func downloadFromURL(ctx context.Context, url string, path string) error {
 	return err
 }
 
+func fetchSentryDSN() string {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, MetadataURL+"/sentry", nil)
+	if err != nil {
+		return ""
+	}
+	req.Header.Set("User-Agent", fmt.Sprintf("alpine-client/pinnacle/%s (%s)", version, SupportEmail))
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		log.Printf("unable to fetch sentry DSN: %v", err)
+		return ""
+	}
+	defer func() {
+		if err = resp.Body.Close(); err != nil {
+			log.Printf("unable to close response body: %v", err)
+		}
+	}()
+
+	type response struct {
+		DSN string `json:"dsn"`
+	}
+
+	var result response
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		log.Printf("unable to decode sentry DSN response: %v", err)
+		return ""
+	}
+
+	return result.DSN
+}
+
 func isUpdateAvailable(c context.Context) bool {
 	req, err := http.NewRequestWithContext(c, http.MethodGet, GitHubReleaseURL, nil)
 	if err != nil {

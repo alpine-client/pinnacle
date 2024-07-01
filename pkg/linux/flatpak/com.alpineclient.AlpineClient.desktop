@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Alpine Client
+Exec=alpine-client
+Icon=com.alpineclient.AlpineClient
+Terminal=false
+Categories=Game;BlocksGame;
+Keywords=alpine;client;minecraft;

@@ -1,4 +1,4 @@
-DSN=$(shell cat SENTRY 2>/dev/null)
+version=$(shell cat VERSION 2>/dev/null)
 
 .PHONY: all audit build clean lint tidy run
 
@@ -10,11 +10,7 @@ audit:
 	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
 build: clean
-ifeq ($(DSN),)
-	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=dev" -o bin/pinnacle-dev.bin .
-else
-	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=dev -X main.sentryDSN=${DSN}" -o bin/pinnacle-dev.bin .
-endif
+	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${version}" -o bin/pinnacle-${version}.bin .
 
 clean:
 	rm -rf ./bin
@@ -23,7 +19,7 @@ lint: tidy
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2 run ./...
 
 run: build
-	./bin/pinnacle-dev.bin
+	./bin/pinnacle-${version}.bin
 
 tidy:
 	go mod tidy -v
