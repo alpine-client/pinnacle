@@ -235,7 +235,7 @@ linters:
     - asciicheck # checks that your code does not contain non-ASCII identifiers
     - bidichk # checks for dangerous unicode character sequences
     - bodyclose # checks whether HTTP response body is closed successfully
-    - canonicalheader # checks whether net/http.Header uses canonical header
+    # - canonicalheader temp disabled due to false flag for `X-GitHub-Api-Version` # checks whether net/http.Header uses canonical header
     - copyloopvar # detects places where loop variables are copied
     - cyclop # checks function and package cyclomatic complexity
     - dupl # tool for code clone detection
