@@ -277,7 +277,7 @@ func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 
 	manifestPath := alpinePath("jre", "17", "version.json")
 	sentry.Breadcrumb(ctx, "writing manifest to file "+manifestPath)
-	err = os.WriteFile(manifestPath, bytes, os.ModePerm)
+	err = os.WriteFile(manifestPath, bytes, 0o600)
 	if err != nil {
 		return err
 	}
