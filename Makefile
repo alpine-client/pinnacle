@@ -1,13 +1,13 @@
 version=$(shell cat VERSION 2>/dev/null)
 
-.PHONY: all audit build clean lint tidy run
+.PHONY: all audit build clean lint run tidy
 
 all: audit lint build
 
 audit:
 	go mod verify
 	go vet ./...
-	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+	go run golang.org/x/vuln/cmd/govulncheck@v1.1.2 ./...
 
 build: clean
 	CGO_ENABLED=1 go build -trimpath -ldflags="-s -w -X main.version=${version}" -o bin/pinnacle-${version}.bin .
@@ -23,4 +23,4 @@ run: build
 
 tidy:
 	go mod tidy -v
-	go run mvdan.cc/gofumpt@latest -w -l .
+	go run mvdan.cc/gofumpt@v0.6.0 -w -l .
