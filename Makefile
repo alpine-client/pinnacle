@@ -16,7 +16,7 @@ clean:
 	rm -rf ./bin
 
 lint: tidy
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2 run ./...
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1 run ./...
 
 run: build
 	./bin/pinnacle-${version}.bin
