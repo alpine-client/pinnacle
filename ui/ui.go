@@ -72,7 +72,7 @@ func Setup(ctx context.Context, fs embed.FS) {
 	if err != nil {
 		panic(err)
 	}
-	window.SetIcon([]image.Image{icon})
+	window.SetIcon(icon)
 
 	logoI, err = loadImage(fs, "assets/logo.png")
 	if err != nil {
@@ -87,7 +87,7 @@ func defaultUI() {
 			giu.Dummy(0, scaleDivider(6)),
 			giu.ImageWithRgba(logoI).Size(LogoSize, LogoSize),
 			giu.Dummy(0, scaleDivider(6)),
-			giu.ProgressBar(ReadProgress()).Size(scaleValue(WindowWidth)*0.75, scaleValue(5)),
+			giu.ProgressBar(ReadProgress()).Size(scaleValueX(WindowWidth)*0.75, scaleValueY(5)),
 		),
 	)
 	PopStyle()
@@ -126,16 +126,21 @@ func Close() {
 }
 
 func scaleDivider(value float32) float32 {
-	scale := giu.Context.GetPlatform().GetContentScale()
-	if scale > 1.0 {
+	_, yScale := giu.Context.Backend().ContentScale()
+	if yScale > 1.0 {
 		value *= 2
 	}
-	return value * scale
+	return value * yScale
 }
 
-func scaleValue(value int) float32 {
-	scale := giu.Context.GetPlatform().GetContentScale()
-	return float32(value) * scale
+func scaleValueY(value int) float32 {
+	_, yScale := giu.Context.Backend().ContentScale()
+	return float32(value) * yScale
+}
+
+func scaleValueX(value int) float32 {
+	xScale, _ := giu.Context.Backend().ContentScale()
+	return float32(value) * xScale
 }
 
 func loadImage(assets embed.FS, path string) (*image.RGBA, error) {
