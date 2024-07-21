@@ -61,12 +61,12 @@ func runTasks(done chan bool) {
 		ui.DisplayError(failed.ctx, failed.err)
 	} else {
 		ui.UpdateProgress(int(ui.TotalSteps))
-		//start := runLauncher(ctx)
-		//if start.err != nil {
-		//	cleanup()
-		//}
+		start := runLauncher(ctx)
+		if start.err != nil {
+			cleanup()
+		}
 		ui.Close()
-		// ui.DisplayError(start.ctx, start.err)
+		ui.DisplayError(start.ctx, start.err)
 	}
 
 	done <- true
