@@ -9,7 +9,6 @@ import (
 	"image/color"
 	"image/png"
 	"os"
-	"sync"
 
 	"github.com/AllenDang/giu"
 	"github.com/alpine-client/pinnacle/sentry"
@@ -20,35 +19,21 @@ const (
 	LogoSize     float32 = 80
 	WindowWidth  int     = 377
 	WindowHeight int     = 144
-	TotalSteps   float32 = 430
 )
 
 var (
-	steps  int
 	logoI  *os.File
-	mutex  sync.Mutex
 	window *giu.MasterWindow
 	dialog zenity.ProgressDialog
+	tasks  []*ProgressiveTask
 )
 
-func UpdateProgress(i int, msg ...string) {
-	mutex.Lock()
-	steps += i
+func Render() {
 	if window != nil {
-		giu.Update()
+		window.Run(defaultUI)
+	} else {
+		runZenity()
 	}
-	mutex.Unlock()
-
-	if dialog != nil && len(msg) != 0 {
-		_ = dialog.Text(msg[0])
-	}
-}
-
-func ReadProgress() float32 {
-	mutex.Lock()
-	p := steps
-	mutex.Unlock()
-	return float32(p) / TotalSteps
 }
 
 func Setup(ctx context.Context, fs embed.FS) {
@@ -81,17 +66,42 @@ func Setup(ctx context.Context, fs embed.FS) {
 	}
 }
 
+func Close() {
+	if window != nil {
+		window.SetShouldClose(true)
+		window = nil
+	}
+	if dialog != nil {
+		_ = dialog.Close()
+	}
+	if logoI != nil {
+		_ = os.Remove(logoI.Name())
+	}
+}
+
 func defaultUI() {
 	SetupStyle()
-	giu.SingleWindow().Layout(
-		giu.Align(giu.AlignCenter).To(
-			giu.Dummy(0, scaleDivider(6)),
-			giu.ImageWithFile(logoI.Name()).Size(LogoSize, LogoSize),
-			giu.Dummy(0, scaleDivider(6)),
-			giu.ProgressBar(ReadProgress()).Size(scaleValueX(WindowWidth)*0.75, scaleValueY(5)),
-		),
-	)
-	PopStyle()
+	defer PopStyle()
+
+	w := []giu.Widget{
+		giu.Dummy(0, scaleDivider(2)),
+		giu.ImageWithFile(logoI.Name()).Size(LogoSize, LogoSize),
+	}
+
+	var most *ProgressiveTask
+	for _, task := range tasks {
+		if task.progress < 1 {
+			if most == nil || task.progress > most.progress {
+				most = task
+			}
+		}
+	}
+	if most != nil {
+		w = append(w, giu.Label(most.label))
+		w = append(w, giu.ProgressBar(most.progress).Size(scaleValueX(WindowWidth)*0.75, scaleValueY(3)))
+		w = append(w, giu.Dummy(0, scaleDivider(2)))
+	}
+	giu.SingleWindow().Layout(giu.Align(giu.AlignCenter).To(w...))
 }
 
 func runZenity() {
@@ -108,27 +118,6 @@ func runZenity() {
 	}
 }
 
-func Render() {
-	if window != nil {
-		window.Run(defaultUI)
-	} else {
-		runZenity()
-	}
-}
-
-func Close() {
-	if window != nil {
-		window.SetShouldClose(true)
-		window = nil
-	}
-	if dialog != nil {
-		_ = dialog.Close()
-	}
-	if logoI != nil {
-		_ = os.Remove(logoI.Name())
-	}
-}
-
 func scaleDivider(value float32) float32 {
 	_, yScale := giu.Context.Backend().ContentScale()
 	if yScale > 1.0 {
@@ -137,14 +126,14 @@ func scaleDivider(value float32) float32 {
 	return value * yScale
 }
 
-func scaleValueY(value int) float32 {
-	_, yScale := giu.Context.Backend().ContentScale()
-	return float32(value) * yScale
-}
-
 func scaleValueX(value int) float32 {
 	xScale, _ := giu.Context.Backend().ContentScale()
 	return float32(value) * xScale
+}
+
+func scaleValueY(value int) float32 {
+	_, yScale := giu.Context.Backend().ContentScale()
+	return float32(value) * yScale
 }
 
 func loadRGBAImage(assets embed.FS, path string) (*image.RGBA, error) {
@@ -162,7 +151,7 @@ func loadRGBAImage(assets embed.FS, path string) (*image.RGBA, error) {
 }
 
 func loadTempImage(assets embed.FS, path string) (*os.File, error) {
-	tempFile, err := os.CreateTemp("", "alpine-client-*.png")
+	temp, err := os.CreateTemp("", "alpine-client-*.png")
 	if err != nil {
 		return nil, err
 	}
@@ -172,14 +161,15 @@ func loadTempImage(assets embed.FS, path string) (*os.File, error) {
 		return nil, err
 	}
 
-	_, err = tempFile.Write(data)
-	if err != nil {
-		return nil, err
-	}
-	err = tempFile.Close()
+	_, err = temp.Write(data)
 	if err != nil {
 		return nil, err
 	}
 
-	return tempFile, nil
+	err = temp.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return temp, nil
 }

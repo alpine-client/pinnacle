@@ -3,7 +3,6 @@ package main
 import (
 	"archive/zip"
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -77,7 +76,7 @@ func extractFile(ctx context.Context, file *zip.File, target string) error {
 	return nil
 }
 
-func extractAll(ctx context.Context, src string, dest string) error {
+func extractAll(ctx context.Context, src string, dest string, pt *ui.ProgressiveTask) error {
 	zipReader, err := zip.OpenReader(src)
 	if err != nil {
 		return err
@@ -107,7 +106,9 @@ func extractAll(ctx context.Context, src string, dest string) error {
 		}
 
 		progress++
-		ui.UpdateProgress(1, fmt.Sprintf("Extracting java (%d/%d)...", progress, total))
+		if pt != nil {
+			pt.UpdateProgress(float32(progress) / float32(total))
+		}
 
 		if file.FileInfo().IsDir() {
 			err = os.MkdirAll(target, os.ModePerm)
@@ -125,7 +126,9 @@ func extractAll(ctx context.Context, src string, dest string) error {
 
 	for path, link := range symlinks {
 		progress++
-		ui.UpdateProgress(1, fmt.Sprintf("Extracting java (%d/%d)...", progress, total))
+		if pt != nil {
+			pt.UpdateProgress(float32(progress) / float32(total))
+		}
 		err = extractSymLink(ctx, link, path)
 		if err != nil {
 			return err
