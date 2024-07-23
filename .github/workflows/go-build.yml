@@ -22,7 +22,7 @@ env:
   ZIG_SHA256: 'd45312e61ebcc48032b77bc4cf7fd6915c11fa16e4aad116b66c9468211230ea'
   JSIGN_VERSION: '6.0'
   JSIGN_SHA256: '05ca18d4ab7b8c2183289b5378d32860f0ea0f3bdab1f1b8cae5894fb225fa8a'
-  INCLUDE_WIN_ARM: 'false'
+  INCLUDE_ALL_ARM: 'false' # if set to false, only build ARM for darwin
 
 jobs:
   build_windows_linux:
@@ -32,11 +32,12 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Add ARM64 repository
+        if: env.INCLUDE_ALL_ARM == 'true'
         run: |
           sudo sed -i -E 's|^deb ([^ ]+) (.*)$|deb [arch=amd64] \1 \2\ndeb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ \2|' /etc/apt/sources.list
           sudo dpkg --add-architecture arm64
 
-      - name: Install dependencies
+      - name: Install AMD64 dependencies
         run: >-
           sudo apt-get update &&
           sudo apt-get install -y
@@ -48,6 +49,11 @@ jobs:
           libxcursor-dev
           libxinerama-dev
           libxkbcommon-dev
+
+      - name: Install ARM64 dependencies
+        if: env.INCLUDE_ALL_ARM == 'true'
+        run: >-
+          sudo apt-get install -y
           libgl-dev:arm64
           libx11-dev:arm64
           libxrandr-dev:arm64
@@ -92,6 +98,7 @@ jobs:
           .
 
       - name: Build Linux ARM64
+        if: env.INCLUDE_ALL_ARM == 'true'
         run: >-
           env
           GOARCH=arm64
@@ -119,7 +126,7 @@ jobs:
           .
 
       - name: Build Windows ARM64
-        if: env.INCLUDE_WIN_ARM == 'true'
+        if: env.INCLUDE_ALL_ARM == 'true'
         run: >-
           env
           GOARCH=arm64
@@ -164,7 +171,7 @@ jobs:
           bin/pinnacle-windows-amd64.exe
 
       - name: Sign Windows ARM64 binary
-        if: env.INCLUDE_WIN_ARM == 'true'
+        if: env.INCLUDE_ALL_ARM == 'true'
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -253,7 +260,7 @@ jobs:
           iscc.exe "$AMD_ISS"
 
       - name: Package ARM64 with InnoSetup
-        if: env.INCLUDE_WIN_ARM == 'true'
+        if: env.INCLUDE_ALL_ARM == 'true'
         run: |
           ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
           sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
@@ -292,7 +299,7 @@ jobs:
           "build/out/AlpineClientSetup-${VERSION}-x86_64.exe"
 
       - name: Sign ARM64 installer
-        if: env.INCLUDE_WIN_ARM == 'true'
+        if: env.INCLUDE_ALL_ARM == 'true'
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -381,6 +388,7 @@ jobs:
           "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
 
       - name: Swap AMD64 binary for ARM64
+        if: env.INCLUDE_ALL_ARM == 'true'
         run: |
           # Remove amd64 binaries
           rm -f ~/rpmbuild/SOURCES/pinnacle-darwin-amd64
@@ -399,6 +407,7 @@ jobs:
           chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
 
       - name: Package ARM64 RPM
+        if: env.INCLUDE_ALL_ARM == 'true'
         run: >-
           rpmbuild -bb
           ~/rpmbuild/SPECS/pinnacle.spec
@@ -406,15 +415,20 @@ jobs:
           --target=aarch64
 
       - name: Package ARM64 DEB
+        if: env.INCLUDE_ALL_ARM == 'true'
         run: >-
           dpkg-deb -Zgzip
           --build ~/debbuild/alpine-client
           "build/out/alpine-client_${VERSION}-${RELEASE}_arm64.deb"
 
-      - name: Tidy artifact
+      - name: Tidy AMD64 artifact
         run: |
           cp -r build/out/x86_64/* build/out/
           rm -rf build/out/x86_64
+
+      - name: Tidy ARM64 artifact
+        if: env.INCLUDE_ALL_ARM == 'true'
+        run: |
           cp -r build/out/aarch64/* build/out/
           rm -rf build/out/aarch64
 
