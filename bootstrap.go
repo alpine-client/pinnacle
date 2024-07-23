@@ -60,7 +60,6 @@ func runTasks(done chan bool) {
 		ui.Close()
 		ui.DisplayError(failed.ctx, failed.err)
 	} else {
-		ui.UpdateProgress(int(ui.TotalSteps))
 		start := runLauncher(ctx)
 		if start.err != nil {
 			cleanup()
@@ -73,21 +72,22 @@ func runTasks(done chan bool) {
 }
 
 func fetchMetadata(ctx context.Context, url string) (*MetadataResponse, error) {
-	body, err := getFromURL(ctx, url)
+	resp, err := getFromURL(ctx, url)
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		sentry.CaptureErr(ctx, body.Close())
+		sentry.CaptureErr(ctx, resp.Body.Close())
 	}()
 
 	sentry.Breadcrumb(ctx, "decoding response from "+url)
 	var res MetadataResponse
-	err = json.NewDecoder(body).Decode(&res)
+	err = json.NewDecoder(resp.Body).Decode(&res)
 	if err != nil {
 		return nil, err
 	}
+
 	return &res, nil
 }
 
@@ -115,28 +115,32 @@ func fileHashMatches(ctx context.Context, hash string, path string) (bool, error
 }
 
 func checkLauncher(c context.Context) TaskResult {
+	pt := ui.NewProgressTask("Preparing launcher...")
 	ctx := sentry.NewContext(c, "checkLauncher")
 
-	ui.UpdateProgress(5, "Validating launcher...")
 	sentry.Breadcrumb(ctx, "fetching metadata from /pinnacle")
+	pt.UpdateProgress(0.20)
 
 	launcher, err := fetchMetadata(ctx, MetadataURL+"/pinnacle")
 	if err != nil {
 		return TaskResult{ctx, err}
 	}
+	pt.UpdateProgress(0.60)
 
 	targetPath := alpinePath("launcher.jar")
 	if !fileExists(targetPath) {
 		sentry.Breadcrumb(ctx, "missing launcher.jar")
+		pt.Close()
 		goto DOWNLOAD
 	}
 
 	if validHash, _ := fileHashMatches(ctx, launcher.Hash, targetPath); !validHash {
 		sentry.Breadcrumb(ctx, "failed checksum validation")
+		pt.Close()
 		goto DOWNLOAD
 	}
 
-	ui.UpdateProgress(25, "Preparing to start launcher...")
+	pt.Close()
 	sentry.Breadcrumb(ctx, "finished checkLauncher (jar existed)")
 	return TaskResult{ctx, nil}
 
@@ -150,18 +154,19 @@ DOWNLOAD:
 }
 
 func downloadLauncher(ctx context.Context, manifest *MetadataResponse, dest string) error {
-	err := downloadFromURL(ctx, manifest.URL, dest)
+	pt := ui.NewProgressTask("Downloading launcher...")
+	err := downloadFile(ctx, manifest.URL, dest, pt)
 	if err != nil {
 		return err
 	}
 
-	ui.UpdateProgress(20, "Verifying launcher hash...")
+	pt.UpdateProgress(0.95)
 	var validHash bool
 	if validHash, err = fileHashMatches(ctx, manifest.Hash, dest); !validHash {
 		sentry.Breadcrumb(ctx, fmt.Sprintf("hash mismatch after download (retrying): %v", err), sentry.LevelError)
 
 		_ = os.RemoveAll(dest)
-		err = downloadFromURL(ctx, manifest.URL, dest)
+		err = downloadFile(ctx, manifest.URL, dest, nil)
 		if err != nil {
 			return err
 		}
@@ -172,11 +177,12 @@ func downloadLauncher(ctx context.Context, manifest *MetadataResponse, dest stri
 		}
 	}
 
-	ui.UpdateProgress(5, "Preparing to start launcher...")
+	pt.UpdateProgress(0.99, "Starting launcher...")
 	return nil
 }
 
 func checkJRE(c context.Context) TaskResult {
+	pt := ui.NewProgressTask("Preparing java runtime...")
 	ctx := sentry.NewContext(c, "checkJRE")
 	path := alpinePath("jre", "17")
 
@@ -185,8 +191,8 @@ func checkJRE(c context.Context) TaskResult {
 	if err != nil {
 		return TaskResult{ctx, err}
 	}
+	pt.UpdateProgress(0.20)
 
-	ui.UpdateProgress(5, "Fetching metadata...")
 	endpoint := fmt.Sprintf("%s/jre?version=17&os=%s&arch=%s", MetadataURL, Sys, Arch)
 	sentry.Breadcrumb(ctx, "fetching manifest from "+endpoint)
 	jre, err := fetchMetadata(ctx, endpoint)
@@ -198,39 +204,44 @@ func checkJRE(c context.Context) TaskResult {
 	var manifest JreManifest
 	javaPath := alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable())
 	manifestPath := alpinePath("jre", "17", "version.json")
-	ui.UpdateProgress(15, "Validating java...")
+	pt.UpdateProgress(0.50)
 
 	if !fileExists(javaPath) {
 		sentry.Breadcrumb(ctx, "missing java executable")
+		pt.Close()
 		goto DOWNLOAD
 	}
-	ui.UpdateProgress(2)
+	pt.UpdateProgress(0.68)
 
 	if !fileExists(manifestPath) {
 		sentry.Breadcrumb(ctx, "missing manifest")
+		pt.Close()
 		goto DOWNLOAD
 	}
-	ui.UpdateProgress(2)
+	pt.UpdateProgress(0.76)
 
 	data, err = os.ReadFile(manifestPath)
 	if err != nil {
 		sentry.Breadcrumb(ctx, "failed to read manifest file")
+		pt.Close()
 		goto DOWNLOAD
 	}
-	ui.UpdateProgress(2)
+	pt.UpdateProgress(0.85)
 
 	if err = json.Unmarshal(data, &manifest); err != nil {
 		sentry.Breadcrumb(ctx, "failed to unmarshal manifest file")
+		pt.Close()
 		goto DOWNLOAD
 	}
-	ui.UpdateProgress(2)
+	pt.UpdateProgress(0.98)
 
 	if manifest.Hash != jre.Hash {
 		sentry.Breadcrumb(ctx, fmt.Sprintf("checksum from file %s does not match expected %s", manifest.Hash, jre.Hash))
+		pt.Close()
 		goto DOWNLOAD
 	}
 
-	ui.UpdateProgress(340)
+	pt.Close()
 	sentry.Breadcrumb(ctx, "finished checkJRE (existed)")
 	return TaskResult{ctx, nil}
 
@@ -246,23 +257,23 @@ DOWNLOAD:
 func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 	zipPath := alpinePath("jre", "17", "jre.zip")
 
-	ui.UpdateProgress(1, "Downloading java...")
-	err := downloadFromURL(ctx, m.URL, zipPath)
+	pt := ui.NewProgressTask("Downloading java...")
+	err := downloadFile(ctx, m.URL, zipPath, pt)
 	if err != nil {
 		return err
 	}
-	ui.UpdateProgress(20)
+	pt.Close()
 
+	pt = ui.NewProgressTask("Extracting java...")
 	extractedPath := alpinePath("jre", "17", "extracted")
 	sentry.Breadcrumb(ctx, "cleaning up path "+extractedPath)
 	err = os.RemoveAll(extractedPath)
 	if err != nil {
 		return err
 	}
-	ui.UpdateProgress(5)
 
 	sentry.Breadcrumb(ctx, "extracting zip "+zipPath)
-	err = extractAll(ctx, zipPath, extractedPath)
+	err = extractAll(ctx, zipPath, extractedPath, pt)
 	if err != nil {
 		return err
 	}
@@ -273,19 +284,19 @@ func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 	if err != nil {
 		return err
 	}
-	ui.UpdateProgress(5)
+	pt.UpdateProgress(0.98)
 
 	manifestPath := alpinePath("jre", "17", "version.json")
 	sentry.Breadcrumb(ctx, "writing manifest to file "+manifestPath)
-	err = os.WriteFile(manifestPath, bytes, os.ModePerm)
+	err = os.WriteFile(manifestPath, bytes, 0o600)
 	if err != nil {
 		return err
 	}
-	ui.UpdateProgress(5)
+	pt.UpdateProgress(0.99)
 
 	_ = os.Remove(zipPath)
 	sentry.Breadcrumb(ctx, "finished checkJRE (downloaded)")
-	ui.UpdateProgress(5)
+	pt.UpdateProgress(1.0)
 	return nil
 }
 
@@ -294,8 +305,6 @@ func runLauncher(c context.Context) TaskResult {
 
 	jarPath := alpinePath("launcher.jar")
 	jrePath := alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable())
-
-	ui.UpdateProgress(1, "Starting launcher...")
 
 	args := []string{
 		"-Xms256M",

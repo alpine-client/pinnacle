@@ -7,7 +7,6 @@ import (
 const (
 	WindowWidth  int     = 377
 	WindowHeight int     = 144
-	TotalSteps   float32 = 430
 )
 
 var dialog zenity.ProgressDialog
