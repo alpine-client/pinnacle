@@ -212,7 +212,7 @@ func isUpdateAvailable(c context.Context) bool {
 		return false
 	}
 
-	if published.UTC().Add(12 * time.Hour).Before(time.Now().UTC()) {
+	if published.UTC().Add(24 * time.Hour).Before(time.Now().UTC()) {
 		return true
 	}
 
