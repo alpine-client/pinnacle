@@ -73,8 +73,11 @@
     </content_rating>
 
     <releases>
+        <release version="1.7.0" date="2024-07-23">
+            <url>https://alpineclient.com/news</url>
+        </release>
         <release version="1.6.0" date="2024-06-17">
-            <url>https://alpineclient.com/news/15</url>
+            <url>https://alpineclient.com/news</url>
         </release>
     </releases>
 
