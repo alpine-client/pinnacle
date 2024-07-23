@@ -25,47 +25,6 @@ env:
   INCLUDE_WIN_ARM: 'false'
 
 jobs:
-  bump_pkg_version:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          sparse-checkout: |
-            pkg
-            VERSION
-
-      - name: Read version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-
-      - name: Update Windows ISS
-        run: |
-          AMD_ISS=pkg/windows/iss/PackagePinnacle-amd64.iss
-          ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
-          sed -i "s/#define MyAppVersion \"[0-9]\+\.[0-9]\+\.[0-9]\+\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
-          sed -i "s/#define MyAppVersion \"[0-9]\+\.[0-9]\+\.[0-9]\+\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
-
-      - name: Update Darwin Info.plist
-        run: |
-          APP="pkg/darwin/Alpine Client.app/Contents"
-          sed -i "0,/<string>[0-9]\+\.[0-9]\+\.[0-9]\+<\/string>/s//<string>${VERSION}<\/string>/" "${APP}/Info.plist"
-
-      - name: Update RPM Spec
-        run: |
-          sed -i "s/^Version:.*/Version: ${VERSION}/" pkg/linux/rpm/SPECS/pinnacle.spec
-          sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
-
-      - name: Update DEB Control
-        run: |
-          sed -i "s/^Version:.*/Version: ${VERSION}-${RELEASE}/" pkg/linux/deb/DEBIAN/control
-
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
-        with:
-          commit_message: "release ${{ env.VERSION }}"
-          file_pattern: '*.spec *.iss *.plist *.desktop pkg/linux/deb/DEBIAN/control'
-
   build_windows_linux:
     runs-on: ubuntu-latest
     steps:
@@ -268,7 +227,7 @@ jobs:
 
   package_windows:
     runs-on: windows-latest
-    needs: [ bump_pkg_version, build_windows_linux ]
+    needs: [ build_windows_linux ]
     steps:
       - name: Checkout .iss files
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -289,12 +248,16 @@ jobs:
 
       - name: Package AMD64 with InnoSetup
         run: |
-          iscc.exe "pkg/windows/iss/PackagePinnacle-amd64.iss"
+          AMD_ISS=pkg/windows/iss/PackagePinnacle-amd64.iss
+          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
+          iscc.exe "$AMD_ISS"
 
       - name: Package ARM64 with InnoSetup
         if: env.INCLUDE_WIN_ARM == 'true'
         run: |
-          iscc.exe "pkg/windows/iss/PackagePinnacle-arm64.iss"
+          ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
+          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
+          iscc.exe "$ARM_ISS"
 
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@71fee32a0bb7e97b4d33d548e7d957010649d8fa # v2.1.3
@@ -350,7 +313,7 @@ jobs:
 
   package_linux:
     runs-on: [ ubuntu-latest ]
-    needs: [ bump_pkg_version, build_windows_linux ]
+    needs: [ build_windows_linux ]
     steps:
       - name: Checkout pkg files
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -380,6 +343,11 @@ jobs:
 
       - name: Prepare for packaging
         run: |
+          # Edit version in spec/control files
+          sed -i "s/^Version:.*/Version: ${VERSION}/" pkg/linux/rpm/SPECS/pinnacle.spec
+          sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
+          sed -i "s/^Version:.*/Version: ${VERSION}-${RELEASE}/" pkg/linux/deb/DEBIAN/control
+          
           # Set up rpmbuild/debbuild file tree
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           mkdir -p ~/debbuild/alpine-client/{DEBIAN,usr/bin,usr/share/applications,usr/share/pixmaps}
@@ -459,7 +427,7 @@ jobs:
 
   package_macos:
     runs-on: macos-latest
-    needs: [ bump_pkg_version, build_macos ]
+    needs: [ build_macos ]
     steps:
       - name: Checkout pkg/darwin
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -487,6 +455,9 @@ jobs:
           mkdir "${APP}/MacOS"
           mkdir -p build/out/
 
+          # Replace version in Info.plist file
+          sed -i '' "s/<string>1.0.0<\/string>/<string>${VERSION}<\/string>/" "${APP}/Info.plist"
+          
           # Move compiled binary
           cp bin/pinnacle-darwin-amd64 "${APP}/MacOS/pinnacle-darwin-amd64"
 
