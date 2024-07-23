@@ -5,17 +5,14 @@ import (
 )
 
 const (
-	WindowWidth  int     = 377
-	WindowHeight int     = 144
+	WindowWidth  int = 377
+	WindowHeight int = 144
 )
 
-var dialog zenity.ProgressDialog
-
-func UpdateProgress(_ int, msg ...string) {
-	if dialog != nil && len(msg) != 0 {
-		_ = dialog.Text(msg[0])
-	}
-}
+var (
+	dialog zenity.ProgressDialog
+	tasks  []*ProgressiveTask
+)
 
 func runZenity() {
 	var err error

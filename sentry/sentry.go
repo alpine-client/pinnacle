@@ -13,8 +13,7 @@ import (
 var enabled bool
 
 const (
-	LevelWarning = sentry.LevelWarning
-	LevelError   = sentry.LevelError
+	LevelError = sentry.LevelError
 )
 
 func Start(release string, dsn string) {
