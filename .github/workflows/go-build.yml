@@ -133,7 +133,7 @@ jobs:
           env
           GOARCH=arm64
           GOOS=windows
-          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
           CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
           go build -trimpath -p 4
           -ldflags "-H=windowsgui -X main.version=${VERSION}"
