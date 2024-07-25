@@ -10,6 +10,7 @@ import (
 	"image/png"
 	"os"
 
+	cimgui "github.com/AllenDang/cimgui-go"
 	"github.com/AllenDang/giu"
 	"github.com/alpine-client/pinnacle/sentry"
 	"github.com/ncruces/zenity"
@@ -53,6 +54,9 @@ func Setup(ctx context.Context, fs embed.FS) {
 		return
 	}
 	window.SetBgColor(color.Transparent)
+
+	ws := cimgui.CurrentPlatformIO().Monitors().Data.WorkSize()
+	window.SetPos(int((ws.X-float32(WindowWidth))/2), int((ws.Y-float32(WindowHeight))/2))
 
 	icon, err := loadRGBAImage(fs, "assets/icon.png")
 	if err != nil {
