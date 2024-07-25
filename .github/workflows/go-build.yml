@@ -281,7 +281,7 @@ jobs:
           env
           GOARCH=amd64
           GOOS=darwin
-          go build -trimpath -buildmode=pie -p 4
+          go build -trimpath -buildmode=pie -p 3
           -ldflags="-s -w -X main.version=${VERSION}"
           -o bin/pinnacle-darwin-amd64
           .
@@ -291,7 +291,7 @@ jobs:
           env
           GOARCH=arm64
           GOOS=darwin
-          go build -trimpath -buildmode=pie -p 4
+          go build -trimpath -buildmode=pie -p 3
           -ldflags="-s -w -X main.version=${VERSION}"
           -o bin/pinnacle-darwin-arm64
           .
