@@ -19,51 +19,11 @@ env:
   CGO_ENABLED: 0
   JSIGN_VERSION: '6.0'
   JSIGN_SHA256: '05ca18d4ab7b8c2183289b5378d32860f0ea0f3bdab1f1b8cae5894fb225fa8a'
+  INCLUDE_ALL_ARM: 'false' # if set to false, only build ARM for darwin
 
 jobs:
-  bump_pkg_version:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          sparse-checkout: |
-            pkg
-            VERSION
-
-      - name: Read version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-
-      - name: Update Windows ISS
-        run: |
-          AMD_ISS=pkg/windows/iss/PackagePinnacle-amd64.iss
-          ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
-          sed -i "s/#define MyAppVersion \"[0-9]\+\.[0-9]\+\.[0-9]\+\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
-          sed -i "s/#define MyAppVersion \"[0-9]\+\.[0-9]\+\.[0-9]\+\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
-
-      - name: Update Darwin Info.plist
-        run: |
-          APP="pkg/darwin/Alpine Client.app/Contents"
-          sed -i "0,/<string>[0-9]\+\.[0-9]\+\.[0-9]\+<\/string>/s//<string>${VERSION}<\/string>/" "${APP}/Info.plist"
-
-      - name: Update RPM Spec
-        run: |
-          sed -i "s/^Version:.*/Version: ${VERSION}/" pkg/linux/rpm/SPECS/pinnacle.spec
-          sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
-
-      - name: Update DEB Control
-        run: |
-          sed -i "s/^Version:.*/Version: ${VERSION}-${RELEASE}/" pkg/linux/deb/DEBIAN/control
-
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
-        with:
-          commit_message: "release ${{ env.VERSION }}"
-          file_pattern: '*.spec *.iss *.plist *.desktop pkg/linux/deb/DEBIAN/control'
-
-  build_windows_linux:
-    runs-on: ubuntu-latest
+  build_windows:
+    runs-on: windows-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -77,28 +37,15 @@ jobs:
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Build Linux AMD64
-        run: >-
-          env
-          CGO_ENABLED=0
-          GOARCH=amd64
-          go build -trimpath
-          -ldflags="-s -w -X main.version=${VERSION}"
-          -o bin/pinnacle-linux-amd64
-          .
-
       - name: Copy syso files
         run: |
           cp -r pkg/windows/syso/* .
 
-      - name: Build Windows AMD64
+      - name: Build AMD64
         run: >-
-          env
-          GOARCH=amd64
-          GOOS=windows
-          CGO_ENABLED=0
-          go build -trimpath
-          -ldflags="-H=windowsgui -X main.version=${VERSION}"
+          go build
+          -trimpath -p 4
+          -ldflags="-H=windowsgui -s -w -X main.version=${VERSION}"
           -o bin/pinnacle-windows-amd64.exe
           .
 
@@ -122,7 +69,7 @@ jobs:
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign Windows AMD64 binary
+      - name: Sign AMD64 binary
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -137,9 +84,132 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
-          name: windows-linux-binaries
+          name: windows-binaries
           path: bin
           retention-days: 1
+          if-no-files-found: error
+
+  build_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Set up Go
+        uses: WillAbides/setup-go-faster@a0ff5217a7d2567ed6ff1aa2b7d8f9d58173b2c9 # v1.14.0
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Read version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Build Linux AMD64
+        run: >-
+          env
+          CGO_ENABLED=0
+          GOARCH=amd64
+          go build -trimpath -p 4
+          -ldflags="-s -w -X main.version=${VERSION}"
+          -o bin/pinnacle-linux-amd64
+          .
+
+      - name: Build ARM64
+        if: env.INCLUDE_ALL_ARM == 'true'
+        run: >-
+          env
+          GOARCH=arm64
+          CC="zig cc -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
+          CXX="zig c++ -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
+          go build -trimpath -p 4
+          -ldflags="-X main.version=${VERSION}"
+          -o bin/pinnacle-linux-arm64
+          .
+      #
+      #      - name: Copy syso files
+      #        run: |
+      #          cp -r pkg/windows/syso/* .
+      #
+      #      - name: Build Windows AMD64
+      #        run: >-
+      #          env
+      #          GOARCH=amd64
+      #          GOOS=windows
+      #          CC="zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+      #          CXX="zig c++ -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+      #          go build -trimpath -buildmode=exe
+      #          -ldflags="-H=windowsgui -X main.version=${VERSION}"
+      #          -v
+      #          -p 4
+      #          -o bin/pinnacle-windows-amd64.exe
+      #          .
+      #
+      #      - name: Build Windows ARM64
+      #        if: env.INCLUDE_ALL_ARM == 'true'
+      #        run: >-
+      #          env
+      #          GOARCH=arm64
+      #          GOOS=windows
+      #          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+      #          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
+      #          go build -trimpath
+      #          -ldflags "-H=windowsgui -X main.version=${VERSION}"
+      #          -p 4
+      #          -o bin/pinnacle-windows-arm64.exe
+      #          .
+      #
+      #      - name: Authenticate with Google Cloud
+      #        uses: google-github-actions/auth@71fee32a0bb7e97b4d33d548e7d957010649d8fa # v2.1.3
+      #        with:
+      #          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+      #
+      #      - name: Set up Google Cloud SDK
+      #        uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
+      #
+      #      - name: Download jsign
+      #        run: |
+      #          set -eux
+      #          url="https://github.com/ebourg/jsign/releases/download/${JSIGN_VERSION}/jsign-${JSIGN_VERSION}.jar"
+      #          sha256="${JSIGN_SHA256}"
+      #          curl -sSL ${url} -o jsign.jar
+      #          echo ${sha256} jsign.jar | sha256sum -c -
+      #
+      #      - name: Decode certificate
+      #        run: |
+      #          echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
+      #
+      #      - name: Sign Windows AMD64 binary
+      #        run: >-
+      #          java -jar jsign.jar
+      #          --storetype GOOGLECLOUD
+      #          --storepass "$(gcloud auth print-access-token)"
+      #          --keystore "${{ secrets.GCP_KEYSTORE }}"
+      #          --alias "${{ secrets.GCP_KEY_ALIAS }}"
+      #          --certfile pinnacle-certificate.pem
+      #          --tsmode RFC3161
+      #          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
+      #          bin/pinnacle-windows-amd64.exe
+      #
+      #      - name: Sign Windows ARM64 binary
+      #        if: env.INCLUDE_ALL_ARM == 'true'
+      #        run: >-
+      #          java -jar jsign.jar
+      #          --storetype GOOGLECLOUD
+      #          --storepass "$(gcloud auth print-access-token)"
+      #          --keystore "${{ secrets.GCP_KEYSTORE }}"
+      #          --alias "${{ secrets.GCP_KEY_ALIAS }}"
+      #          --certfile pinnacle-certificate.pem
+      #          --tsmode RFC3161
+      #          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
+      #          bin/pinnacle-windows-arm64.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        with:
+          name: linux-binaries
+          path: bin
+          retention-days: 1
+          if-no-files-found: error
 
   build_macos:
     runs-on: macos-latest
@@ -162,7 +232,7 @@ jobs:
           GOARCH=amd64
           GOOS=darwin
           CGO_ENABLED=0
-          go build -trimpath -buildmode=pie
+          go build -trimpath -buildmode=pie -p 3
           -ldflags="-s -w -X main.version=${VERSION}"
           -o bin/pinnacle-darwin-amd64
           .
@@ -173,7 +243,7 @@ jobs:
           GOARCH=arm64
           GOOS=darwin
           CGO_ENABLED=0
-          go build -trimpath -buildmode=pie
+          go build -trimpath -buildmode=pie -p 3
           -ldflags="-s -w -X main.version=${VERSION}"
           -o bin/pinnacle-darwin-arm64
           .
@@ -184,10 +254,11 @@ jobs:
           name: macos-binaries
           path: bin
           retention-days: 1
+          if-no-files-found: error
 
   package_windows:
     runs-on: windows-latest
-    needs: [ bump_pkg_version, build_windows_linux ]
+    needs: [ build_windows ]
     steps:
       - name: Checkout .iss files
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -199,7 +270,7 @@ jobs:
       - name: Download binaries
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
-          name: windows-linux-binaries
+          name: windows-binaries
           path: bin
 
       - name: Read version
@@ -208,7 +279,9 @@ jobs:
 
       - name: Package AMD64 with InnoSetup
         run: |
-          iscc.exe "pkg/windows/iss/PackagePinnacle-amd64.iss"
+          AMD_ISS=pkg/windows/iss/PackagePinnacle-amd64.iss
+          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
+          iscc.exe "$AMD_ISS"
 
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@71fee32a0bb7e97b4d33d548e7d957010649d8fa # v2.1.3
@@ -248,10 +321,11 @@ jobs:
           name: windows-installers
           path: build/out
           retention-days: 1
+          if-no-files-found: error
 
   package_linux:
-    runs-on: [ ubuntu-latest ]
-    needs: [ bump_pkg_version, build_windows_linux ]
+    runs-on: ubuntu-latest
+    needs: [ build_linux ]
     steps:
       - name: Checkout pkg files
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -263,7 +337,7 @@ jobs:
       - name: Download binaries
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
-          name: windows-linux-binaries
+          name: linux-binaries
           path: bin
 
       - name: Install dependencies
@@ -281,6 +355,11 @@ jobs:
 
       - name: Prepare for packaging
         run: |
+          # Edit version in spec/control files
+          sed -i "s/^Version:.*/Version: ${VERSION}/" pkg/linux/rpm/SPECS/pinnacle.spec
+          sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
+          sed -i "s/^Version:.*/Version: ${VERSION}-${RELEASE}/" pkg/linux/deb/DEBIAN/control
+          
           # Set up rpmbuild/debbuild file tree
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           mkdir -p ~/debbuild/alpine-client/{DEBIAN,usr/bin,usr/share/applications,usr/share/pixmaps}
@@ -324,10 +403,11 @@ jobs:
           name: linux-installers
           path: build/out
           retention-days: 1
+          if-no-files-found: error
 
   package_macos:
     runs-on: macos-latest
-    needs: [ bump_pkg_version, build_macos ]
+    needs: [ build_macos ]
     steps:
       - name: Checkout pkg/darwin
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -355,6 +435,9 @@ jobs:
           mkdir "${APP}/MacOS"
           mkdir -p build/out/
 
+          # Replace version in Info.plist file
+          sed -i '' "s/<string>1.0.0<\/string>/<string>${VERSION}<\/string>/" "${APP}/Info.plist"
+          
           # Move compiled binary
           cp bin/pinnacle-darwin-amd64 "${APP}/MacOS/pinnacle-darwin-amd64"
 
@@ -395,10 +478,11 @@ jobs:
           name: macos-installers
           path: build/out
           retention-days: 1
+          if-no-files-found: error
 
   create_github_release:
-    needs: [ package_windows, package_linux, package_macos ]
     runs-on: ubuntu-latest
+    needs: [ package_windows, package_linux, package_macos ]
     steps:
       - name: Checkout version file
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -420,7 +504,8 @@ jobs:
           mkdir -p merged/{binaries,installers}
 
           # Combine binaries
-          cp -r all/windows-linux-binaries/* merged/binaries/
+          cp -r all/windows-binaries/* merged/binaries/
+          cp -r all/linux-binaries/* merged/binaries/
           cp -r all/macos-binaries/* merged/binaries/
 
           # Combine installers
@@ -435,3 +520,4 @@ jobs:
           path: merged
           compression-level: 9
           retention-days: 90
+          if-no-files-found: error

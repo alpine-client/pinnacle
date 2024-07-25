@@ -160,13 +160,12 @@ func downloadLauncher(ctx context.Context, manifest *MetadataResponse, dest stri
 		return err
 	}
 
-	pt.UpdateProgress(0.95)
 	var validHash bool
 	if validHash, err = fileHashMatches(ctx, manifest.Hash, dest); !validHash {
 		sentry.Breadcrumb(ctx, fmt.Sprintf("hash mismatch after download (retrying): %v", err), sentry.LevelError)
 
 		_ = os.RemoveAll(dest)
-		err = downloadFile(ctx, manifest.URL, dest, nil)
+		err = downloadFile(ctx, manifest.URL, dest, pt)
 		if err != nil {
 			return err
 		}
@@ -177,7 +176,7 @@ func downloadLauncher(ctx context.Context, manifest *MetadataResponse, dest stri
 		}
 	}
 
-	pt.UpdateProgress(0.99, "Starting launcher...")
+	pt.UpdateProgress(0.99999, "Starting launcher...")
 	return nil
 }
 
@@ -284,7 +283,6 @@ func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 	if err != nil {
 		return err
 	}
-	pt.UpdateProgress(0.98)
 
 	manifestPath := alpinePath("jre", "17", "version.json")
 	sentry.Breadcrumb(ctx, "writing manifest to file "+manifestPath)
@@ -292,11 +290,10 @@ func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 	if err != nil {
 		return err
 	}
-	pt.UpdateProgress(0.99)
 
 	_ = os.Remove(zipPath)
 	sentry.Breadcrumb(ctx, "finished checkJRE (downloaded)")
-	pt.UpdateProgress(1.0)
+	pt.Close()
 	return nil
 }
 
