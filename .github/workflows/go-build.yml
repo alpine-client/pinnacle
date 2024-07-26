@@ -18,8 +18,6 @@ defaults:
 env:
   RELEASE: ${{ github.run_number }}
   CGO_ENABLED: 1
-  JSIGN_VERSION: '6.0'
-  JSIGN_SHA256: '05ca18d4ab7b8c2183289b5378d32860f0ea0f3bdab1f1b8cae5894fb225fa8a'
 
 jobs:
   build_windows:
@@ -58,12 +56,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
 
       - name: Download jsign
-        run: |
-          set -eux
-          url="https://github.com/ebourg/jsign/releases/download/${JSIGN_VERSION}/jsign-${JSIGN_VERSION}.jar"
-          sha256="${JSIGN_SHA256}"
-          curl -sSL ${url} -o jsign.jar
-          echo ${sha256} jsign.jar | sha256sum -c -
+        run: ./ci/download-jsign.sh
 
       - name: Decode certificate
         run: |
@@ -213,12 +206,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
 
       - name: Download jsign
-        run: |
-          set -eux
-          url="https://github.com/ebourg/jsign/releases/download/${JSIGN_VERSION}/jsign-${JSIGN_VERSION}.jar"
-          sha256="${JSIGN_SHA256}"
-          curl -sSL ${url} -o jsign.jar
-          echo ${sha256} jsign.jar | sha256sum -c -
+        run: ./ci/download-jsign.sh
 
       - name: Decode certificate
         run: |
