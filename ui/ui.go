@@ -46,7 +46,7 @@ func Setup(ctx context.Context, fs embed.FS) {
 	}()
 
 	window = giu.NewMasterWindow(
-		"Alpine Client Updater",
+		"Alpine Client",
 		WindowWidth, WindowHeight,
 		giu.MasterWindowFlagsFrameless|giu.MasterWindowFlagsNotResizable|giu.MasterWindowFlagsTransparent,
 	)
