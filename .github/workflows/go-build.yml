@@ -445,6 +445,51 @@ jobs:
           make_latest: true
           draft: false
 
+  publish_aur_package:
+    name: "Publish AUR Package"
+    runs-on: ubuntu-latest
+    needs: [ create_github_release ]
+
+    if: github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout pkg/linux/arch
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          sparse-checkout: |
+            pkg/linux/arch
+            VERSION
+
+      - name: Read version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Generate tarball checksum
+        run: |
+          src_url="${{ github.server_url }}/${{ github.repository }}/archive/${VERSION}.tar.gz"
+          checksum=$(curl -sL ${src_url} | shasum -a 256 | cut -d " " -f 1)
+          echo "CHECKSUM=${checksum}" >> $GITHUB_ENV
+          if [ -z "${{ env.CHECKSUM }}" ]; then
+            echo "CHECKSUM is empty"
+            exit 1
+          fi
+
+      - name: Update PKGBUILD
+        run: |
+          sed -i "s/pkgver=1.0.0/pkgver=${VERSION}/" pkg/linux/arch/PKGBUILD
+          sed -i "s/sha256sums=('SKIP')/sha256sums=('${CHECKSUM}')/" pkg/linux/arch/PKGBUILD
+
+      - name: Publish to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@9dfe151cf48f26a957bbd0379c120e79cb990e13 # v2.7.2
+        with:
+          force_push: true
+          pkgname: alpine-client
+          pkgbuild: pkg/linux/arch/PKGBUILD
+          commit_message: ${{ env.VERSION }}
+          commit_email: ${{ secrets.AUR_EMAIL }}
+          commit_username: ${{ secrets.AUR_USERNAME }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+
   create_sentry_release:
     runs-on: ubuntu-latest
     needs: [ create_github_release ]
