@@ -6,7 +6,7 @@ License:        MPL-2.0
 URL:            https://alpineclient.com/
 Source0:        pinnacle-linux-amd64
 Source1:        %{name}.desktop
-Source2:        %{name}-icon.png
+Source2:        %{name}.png
 Source3:        LICENSE
 
 %description
@@ -18,7 +18,7 @@ and multi-version support to curate the ultimate player experience.
 %install
 install -D -m 755 %{SOURCE0} %{buildroot}%{_bindir}/%{name}
 install -D -m 644 %{SOURCE1} %{buildroot}%{_datadir}/applications/%{name}.desktop
-install -D -m 644 %{SOURCE2} %{buildroot}%{_datadir}/icons/hicolor/256x256/apps/%{name}-icon.png
+install -D -m 644 %{SOURCE2} %{buildroot}%{_datadir}/icons/hicolor/256x256/apps/%{name}.png
 install -D -m 644 %{SOURCE3} %{buildroot}%{_datadir}/doc/%{name}/LICENSE
 
 %post
@@ -30,5 +30,5 @@ update-desktop-database %{_datadir}/applications
 %files
 %{_bindir}/%{name}
 %{_datadir}/applications/%{name}.desktop
-%{_datadir}/icons/hicolor/256x256/apps/%{name}-icon.png
+%{_datadir}/icons/hicolor/256x256/apps/%{name}.png
 %doc %{_datadir}/doc/%{name}/LICENSE

@@ -9,7 +9,7 @@
     <key>CFBundleExecutable</key>
     <string>pinnacle-darwin-amd64</string>
     <key>CFBundleIconFile</key>
-    <string>alpine-client-icon.icns</string>
+    <string>alpine-client.icns</string>
     <key>CFBundleIdentifier</key>
     <string>com.alpineclient.pinnacle</string>
     <key>CFBundlePackageType</key>
