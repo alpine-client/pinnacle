@@ -483,11 +483,11 @@ jobs:
         run: |
           src_url="${{ github.server_url }}/${{ github.repository }}/archive/${VERSION}.tar.gz"
           checksum=$(curl -sL ${src_url} | shasum -a 256 | cut -d " " -f 1)
-          echo "CHECKSUM=${checksum}" >> $GITHUB_ENV
-          if [ -z "${{ env.CHECKSUM }}" ]; then
+          if [ -z "$checksum" ]; then
             echo "CHECKSUM is empty"
             exit 1
           fi
+          echo "CHECKSUM=${checksum}" >> $GITHUB_ENV
 
       - name: Update PKGBUILD
         run: |
