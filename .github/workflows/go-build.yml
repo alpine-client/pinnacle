@@ -21,7 +21,9 @@ env:
 
 jobs:
   build_windows:
+    name: "Build Windows"
     runs-on: windows-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -39,7 +41,7 @@ jobs:
         run: |
           cp -r pkg/windows/syso/* .
 
-      - name: Build AMD64
+      - name: Build binary
         run: >-
           go build
           -trimpath -p 4
@@ -62,7 +64,7 @@ jobs:
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign AMD64 binary
+      - name: Sign binary
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -83,7 +85,9 @@ jobs:
           if-no-files-found: error
 
   build_linux:
+    name: "Build Linux"
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -128,7 +132,9 @@ jobs:
           if-no-files-found: error
 
   build_macos:
+    name: "Build MacOS"
     runs-on: macos-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -142,7 +148,7 @@ jobs:
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Build AMD64
+      - name: Build AMD64 binary
         run: >-
           env
           GOARCH=amd64
@@ -152,7 +158,7 @@ jobs:
           -o bin/pinnacle-darwin-amd64
           .
 
-      - name: Build ARM64
+      - name: Build ARM64 binary
         run: >-
           env
           GOARCH=arm64
@@ -171,8 +177,10 @@ jobs:
           if-no-files-found: error
 
   package_windows:
+    name: "Package Windows"
     runs-on: windows-latest
     needs: [ build_windows ]
+
     steps:
       - name: Checkout .iss files
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -212,7 +220,7 @@ jobs:
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign AMD64 installer
+      - name: Sign installer
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -233,8 +241,10 @@ jobs:
           if-no-files-found: error
 
   package_linux:
+    name: "Package Linux"
     runs-on: ubuntu-latest
     needs: [ build_linux ]
+
     steps:
       - name: Checkout pkg files
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -288,20 +298,20 @@ jobs:
           # Create output folder
           mkdir -p build/out
 
-      - name: Package AMD64 RPM
+      - name: Package RPM
         run: >-
           rpmbuild -bb
           ~/rpmbuild/SPECS/pinnacle.spec
           --define "_rpmdir build/out"
           --target=x86_64
 
-      - name: Package AMD64 DEB
+      - name: Package DEB
         run: >-
           dpkg-deb -Zgzip
           --build ~/debbuild/alpine-client
           "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
 
-      - name: Tidy AMD64 artifact
+      - name: Tidy artifact
         run: |
           cp -r build/out/x86_64/* build/out/
           rm -rf build/out/x86_64
@@ -315,8 +325,10 @@ jobs:
           if-no-files-found: error
 
   package_macos:
+    name: "Package MacOS"
     runs-on: macos-latest
     needs: [ build_macos ]
+
     steps:
       - name: Checkout pkg/darwin
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -390,8 +402,10 @@ jobs:
           if-no-files-found: error
 
   create_github_release:
+    name: "Create GitHub Release"
     runs-on: ubuntu-latest
     needs: [ package_windows, package_linux, package_macos ]
+
     steps:
       - name: Checkout version file
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -491,9 +505,12 @@ jobs:
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
 
   create_sentry_release:
+    name: "Create Sentry Release"
     runs-on: ubuntu-latest
     needs: [ create_github_release ]
+
     if: github.ref == 'refs/heads/master'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
