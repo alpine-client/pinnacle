@@ -23,7 +23,7 @@ DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=D:\a\pinnacle\pinnacle\build\out
 OutputBaseFilename=AlpineClientSetup-{#MyAppVersion}-x86_64
-SetupIconFile=D:\a\pinnacle\pinnacle\pkg\windows\resources\alpine-client-icon.ico
+SetupIconFile=D:\a\pinnacle\pinnacle\pkg\windows\resources\alpine-client.ico
 Compression=zip
 SolidCompression=no
 WizardStyle=modern
@@ -41,7 +41,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "D:\a\pinnacle\pinnacle\bin\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "D:\a\pinnacle\pinnacle\pkg\windows\resources\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\a\pinnacle\pinnacle\pkg\windows\resources\alpine-client-icon.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\a\pinnacle\pinnacle\pkg\windows\resources\alpine-client.ico"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

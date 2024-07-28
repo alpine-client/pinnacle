@@ -194,15 +194,22 @@ func isUpdateAvailable(c context.Context) bool {
 		return false
 	}
 
-	if len(strings.Split(version, ".")) != 3 {
-		return false
-	}
-
 	if result.PreRelease {
 		return false
 	}
 
 	if version == result.TagName {
+		return false
+	}
+
+	v := strings.Split(version, ".")
+	r := strings.Split(result.TagName, ".")
+	if len(v) != 3 || len(r) != 3 {
+		return false
+	}
+
+	if v[0] == r[0] && v[1] == r[1] {
+		// major + minor are the same, don't notify
 		return false
 	}
 

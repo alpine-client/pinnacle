@@ -17,13 +17,12 @@ defaults:
 env:
   RELEASE: ${{ github.run_number }}
   CGO_ENABLED: 0
-  JSIGN_VERSION: '6.0'
-  JSIGN_SHA256: '05ca18d4ab7b8c2183289b5378d32860f0ea0f3bdab1f1b8cae5894fb225fa8a'
-  INCLUDE_ALL_ARM: 'false' # if set to false, only build ARM for darwin
 
 jobs:
   build_windows:
+    name: "Build Windows"
     runs-on: windows-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -41,7 +40,7 @@ jobs:
         run: |
           cp -r pkg/windows/syso/* .
 
-      - name: Build AMD64
+      - name: Build binary
         run: >-
           go build
           -trimpath -p 4
@@ -58,18 +57,13 @@ jobs:
         uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
 
       - name: Download jsign
-        run: |
-          set -eux
-          url="https://github.com/ebourg/jsign/releases/download/${JSIGN_VERSION}/jsign-${JSIGN_VERSION}.jar"
-          sha256="${JSIGN_SHA256}"
-          curl -sSL ${url} -o jsign.jar
-          echo ${sha256} jsign.jar | sha256sum -c -
+        run: ./ci/download-jsign.sh
 
       - name: Decode certificate
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign AMD64 binary
+      - name: Sign binary
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -90,7 +84,9 @@ jobs:
           if-no-files-found: error
 
   build_linux:
+    name: "Build Linux"
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -104,104 +100,14 @@ jobs:
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Build Linux AMD64
+      - name: Build binary
         run: >-
           env
-          CGO_ENABLED=0
           GOARCH=amd64
           go build -trimpath -p 4
           -ldflags="-s -w -X main.version=${VERSION}"
           -o bin/pinnacle-linux-amd64
           .
-
-      - name: Build ARM64
-        if: env.INCLUDE_ALL_ARM == 'true'
-        run: >-
-          env
-          GOARCH=arm64
-          CC="zig cc -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
-          CXX="zig c++ -target aarch64-linux-gnu -isystem /usr/include -L/usr/lib/aarch64-linux-gnu -Wl,-s"
-          go build -trimpath -p 4
-          -ldflags="-X main.version=${VERSION}"
-          -o bin/pinnacle-linux-arm64
-          .
-      #
-      #      - name: Copy syso files
-      #        run: |
-      #          cp -r pkg/windows/syso/* .
-      #
-      #      - name: Build Windows AMD64
-      #        run: >-
-      #          env
-      #          GOARCH=amd64
-      #          GOOS=windows
-      #          CC="zig cc -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-      #          CXX="zig c++ -target x86_64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-      #          go build -trimpath -buildmode=exe
-      #          -ldflags="-H=windowsgui -X main.version=${VERSION}"
-      #          -v
-      #          -p 4
-      #          -o bin/pinnacle-windows-amd64.exe
-      #          .
-      #
-      #      - name: Build Windows ARM64
-      #        if: env.INCLUDE_ALL_ARM == 'true'
-      #        run: >-
-      #          env
-      #          GOARCH=arm64
-      #          GOOS=windows
-      #          CC="zig cc -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-      #          CXX="zig c++ -target aarch64-windows-gnu -isystem /usr/include -L/usr/lib/aarch64-windows-gnu -Wl,--subsystem,windows -Wl,-s"
-      #          go build -trimpath
-      #          -ldflags "-H=windowsgui -X main.version=${VERSION}"
-      #          -p 4
-      #          -o bin/pinnacle-windows-arm64.exe
-      #          .
-      #
-      #      - name: Authenticate with Google Cloud
-      #        uses: google-github-actions/auth@71fee32a0bb7e97b4d33d548e7d957010649d8fa # v2.1.3
-      #        with:
-      #          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
-      #
-      #      - name: Set up Google Cloud SDK
-      #        uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
-      #
-      #      - name: Download jsign
-      #        run: |
-      #          set -eux
-      #          url="https://github.com/ebourg/jsign/releases/download/${JSIGN_VERSION}/jsign-${JSIGN_VERSION}.jar"
-      #          sha256="${JSIGN_SHA256}"
-      #          curl -sSL ${url} -o jsign.jar
-      #          echo ${sha256} jsign.jar | sha256sum -c -
-      #
-      #      - name: Decode certificate
-      #        run: |
-      #          echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
-      #
-      #      - name: Sign Windows AMD64 binary
-      #        run: >-
-      #          java -jar jsign.jar
-      #          --storetype GOOGLECLOUD
-      #          --storepass "$(gcloud auth print-access-token)"
-      #          --keystore "${{ secrets.GCP_KEYSTORE }}"
-      #          --alias "${{ secrets.GCP_KEY_ALIAS }}"
-      #          --certfile pinnacle-certificate.pem
-      #          --tsmode RFC3161
-      #          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
-      #          bin/pinnacle-windows-amd64.exe
-      #
-      #      - name: Sign Windows ARM64 binary
-      #        if: env.INCLUDE_ALL_ARM == 'true'
-      #        run: >-
-      #          java -jar jsign.jar
-      #          --storetype GOOGLECLOUD
-      #          --storepass "$(gcloud auth print-access-token)"
-      #          --keystore "${{ secrets.GCP_KEYSTORE }}"
-      #          --alias "${{ secrets.GCP_KEY_ALIAS }}"
-      #          --certfile pinnacle-certificate.pem
-      #          --tsmode RFC3161
-      #          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
-      #          bin/pinnacle-windows-arm64.exe
 
       - name: Upload artifact
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
@@ -212,7 +118,9 @@ jobs:
           if-no-files-found: error
 
   build_macos:
+    name: "Build MacOS"
     runs-on: macos-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -226,23 +134,21 @@ jobs:
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Build AMD64
+      - name: Build AMD64 binary
         run: >-
           env
           GOARCH=amd64
           GOOS=darwin
-          CGO_ENABLED=0
           go build -trimpath -buildmode=pie -p 3
           -ldflags="-s -w -X main.version=${VERSION}"
           -o bin/pinnacle-darwin-amd64
           .
 
-      - name: Build ARM64
+      - name: Build ARM64 binary
         run: >-
           env
           GOARCH=arm64
           GOOS=darwin
-          CGO_ENABLED=0
           go build -trimpath -buildmode=pie -p 3
           -ldflags="-s -w -X main.version=${VERSION}"
           -o bin/pinnacle-darwin-arm64
@@ -257,8 +163,10 @@ jobs:
           if-no-files-found: error
 
   package_windows:
+    name: "Package Windows"
     runs-on: windows-latest
     needs: [ build_windows ]
+
     steps:
       - name: Checkout .iss files
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -266,6 +174,7 @@ jobs:
           sparse-checkout: |
             pkg/windows
             VERSION
+            ci
 
       - name: Download binaries
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -292,18 +201,13 @@ jobs:
         uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
 
       - name: Download jsign
-        run: |
-          set -eux
-          url="https://github.com/ebourg/jsign/releases/download/${JSIGN_VERSION}/jsign-${JSIGN_VERSION}.jar"
-          sha256="${JSIGN_SHA256}"
-          curl -sSL ${url} -o jsign.jar
-          echo ${sha256} jsign.jar | sha256sum -c -
+        run: ./ci/download-jsign.sh
 
       - name: Decode certificate
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign AMD64 installer
+      - name: Sign installer
         run: >-
           java -jar jsign.jar
           --storetype GOOGLECLOUD
@@ -324,8 +228,10 @@ jobs:
           if-no-files-found: error
 
   package_linux:
+    name: "Package Linux"
     runs-on: ubuntu-latest
     needs: [ build_linux ]
+
     steps:
       - name: Checkout pkg files
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -379,14 +285,14 @@ jobs:
           # Create output folder
           mkdir -p build/out
 
-      - name: Package AMD64 RPM
+      - name: Package RPM
         run: >-
           rpmbuild -bb
           ~/rpmbuild/SPECS/pinnacle.spec
           --define "_rpmdir build/out"
           --target=x86_64
 
-      - name: Package AMD64 DEB
+      - name: Package DEB
         run: >-
           dpkg-deb -Zgzip
           --build ~/debbuild/alpine-client
@@ -406,8 +312,10 @@ jobs:
           if-no-files-found: error
 
   package_macos:
+    name: "Package MacOS"
     runs-on: macos-latest
     needs: [ build_macos ]
+
     steps:
       - name: Checkout pkg/darwin
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -481,8 +389,10 @@ jobs:
           if-no-files-found: error
 
   create_github_release:
+    name: "Create GitHub Release"
     runs-on: ubuntu-latest
     needs: [ package_windows, package_linux, package_macos ]
+
     steps:
       - name: Checkout version file
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7

@@ -1,8 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Alpine Client
+Comment=A lightweight multi-version Minecraft modpack
 Exec=/usr/bin/alpine-client
-Icon=/usr/share/pixmaps/alpine-client-icon.png
+Icon=/usr/share/pixmaps/alpine-client.png
 Terminal=false
-Categories=Game;
+Categories=Game
 Keywords=alpine;client;minecraft;
