@@ -10,7 +10,10 @@ audit:
 	go run golang.org/x/vuln/cmd/govulncheck@v1.1.3 ./...
 
 build: clean
-	CGO_ENABLED=1 go build -trimpath -ldflags="-s -w -X main.version=${version}" -o bin/pinnacle-${version}.bin .
+	CGO_ENABLED=0 \
+		go build -trimpath -buildmode=pie \
+		-ldflags="-s -w -X main.version=${version}" \
+		-o bin/pinnacle-${version}.bin .
 
 clean:
 	rm -rf ./bin

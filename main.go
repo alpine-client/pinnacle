@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"embed"
-	"os"
 	"time"
 
 	"github.com/alpine-client/pinnacle/sentry"
@@ -15,9 +13,6 @@ var (
 	Arch    Architecture
 	version string
 )
-
-//go:embed assets/*
-var assets embed.FS
 
 func main() {
 	sentry.Start(version, fetchSentryDSN())
@@ -36,19 +31,34 @@ func Run() {
 		ui.NotifyNewUpdate()
 	}
 
-	ui.Setup(ctx, assets)
-
-	err := os.MkdirAll(alpinePath(), os.ModePerm)
-	if err != nil {
-		ui.DisplayError(ctx, err)
-		return
-	}
-
 	done := make(chan bool)
-	go runTasks(done)
+	defer close(done)
+
+	go func() {
+		tasks := []func(c context.Context) error{
+			setup,
+			checkJRE,
+			checkLauncher,
+			startLauncher,
+		}
+		for _, task := range tasks {
+			err := task(ctx)
+			if err != nil {
+				cleanup()
+				ui.Close()
+				ui.DisplayError(ctx, err)
+				break
+			}
+		}
+		time.Sleep(20 * time.Minute)
+		ui.Close()
+		done <- true
+	}()
 
 	ui.Render()
 
 	<-done
-	close(done)
+	if logFile != nil {
+		sentry.CaptureErr(ctx, logFile.Close())
+	}
 }

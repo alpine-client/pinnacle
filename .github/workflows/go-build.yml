@@ -17,7 +17,7 @@ defaults:
 
 env:
   RELEASE: ${{ github.run_number }}
-  CGO_ENABLED: 1
+  CGO_ENABLED: 0
 
 jobs:
   build_windows:

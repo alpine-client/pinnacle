@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"errors"
+	"log"
 	"os/exec"
 	"runtime"
 	"time"
@@ -20,7 +21,8 @@ func DisplayError(ctx context.Context, err error) {
 
 	message := err.Error()
 
-	if id := sentry.CaptureErr(ctx, err); id != nil {
+	id := sentry.CaptureErr(ctx, err)
+	if id != nil {
 		message += "\n\nCode: " + string(*id)
 	}
 
@@ -54,11 +56,15 @@ func openSupportWebsite() {
 	}
 
 	if err != nil {
+		log.Printf("[ERROR] %v", err)
 		// None of the above worked. Create new popup with url.
-		_ = zenity.Info(
+		err = zenity.Info(
 			"Please visit "+supportURL+" for assistance.",
 			zenity.Title("Error"),
 			zenity.InfoIcon,
 		)
+		if err != nil {
+			log.Printf("[ERROR] %v", err)
+		}
 	}
 }

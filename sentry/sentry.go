@@ -13,13 +13,12 @@ import (
 var enabled bool
 
 const (
-	LevelWarning = sentry.LevelWarning
-	LevelError   = sentry.LevelError
+	LevelError = sentry.LevelError
 )
 
 func Start(release string, dsn string) {
 	if dsn == "" {
-		log.Println("missing sentry DSN")
+		log.Println("[WARN] missing sentry DSN")
 		return
 	}
 	err := sentry.Init(sentry.ClientOptions{
@@ -29,8 +28,7 @@ func Start(release string, dsn string) {
 		Transport:        sentry.NewHTTPSyncTransport(),
 	})
 	if err != nil {
-		// TODO: log to file
-		log.Printf("unable to start sentry: %v", err)
+		log.Printf("[WARN] unable to start sentry: %v", err)
 		return
 	}
 	enabled = true
@@ -60,17 +58,16 @@ func NewContext(parent context.Context, task string) context.Context {
 }
 
 func Breadcrumb(ctx context.Context, desc string, level ...sentry.Level) {
-	if !enabled {
-		return
-	}
-
 	var lvl sentry.Level
 	if len(level) == 0 {
 		lvl = sentry.LevelInfo
 	} else {
 		lvl = level[0]
 	}
-
+	log.Printf("%s %s", lvl, desc)
+	if !enabled {
+		return
+	}
 	if hub := sentry.GetHubFromContext(ctx); hub != nil {
 		hub.AddBreadcrumb(&sentry.Breadcrumb{
 			Category: ctx.Value(contextKey("task")).(string),
@@ -82,7 +79,11 @@ func Breadcrumb(ctx context.Context, desc string, level ...sentry.Level) {
 
 // CaptureErr reports an error to Sentry but does not exit the program.
 func CaptureErr(ctx context.Context, err error) *sentry.EventID {
-	if err == nil || !enabled {
+	if err == nil {
+		return nil
+	}
+	log.Printf("[ERROR] %v", err)
+	if !enabled {
 		return nil
 	}
 	Breadcrumb(ctx, err.Error(), sentry.LevelError)

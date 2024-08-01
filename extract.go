@@ -107,7 +107,7 @@ func extractAll(ctx context.Context, src string, dest string, pt *ui.Progressive
 
 		progress++
 		if pt != nil {
-			pt.UpdateProgress(float32(progress) / float32(total))
+			pt.UpdateProgress(float64(progress) / float64(total))
 		}
 
 		if file.FileInfo().IsDir() {
@@ -127,7 +127,7 @@ func extractAll(ctx context.Context, src string, dest string, pt *ui.Progressive
 	for path, link := range symlinks {
 		progress++
 		if pt != nil {
-			pt.UpdateProgress(float32(progress) / float32(total))
+			pt.UpdateProgress(float64(progress) / float64(total))
 		}
 		err = extractSymLink(ctx, link, path)
 		if err != nil {

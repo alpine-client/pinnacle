@@ -115,7 +115,7 @@ func copyResponseWithProgress(dst io.Writer, resp *http.Response, pt *ui.Progres
 				break
 			}
 			if pt != nil {
-				pt.UpdateProgress(float32(written) / float32(resp.ContentLength))
+				pt.UpdateProgress(float64(written) / float64(resp.ContentLength))
 			}
 		}
 		if er != nil {

@@ -1,11 +1,18 @@
 package ui
 
 import (
+	"log"
+
 	"github.com/ncruces/zenity"
 )
 
-const downloadURL = "https://alpineclient.com/download"
+const (
+	downloadURL = "https://alpineclient.com/download"
+)
 
 func NotifyNewUpdate() {
-	_ = zenity.Notify("New version available!\n\nPlease visit " + downloadURL)
+	const msg = "Update available!\n\nPlease visit " + downloadURL
+
+	log.Printf("[INFO] %s", msg)
+	_ = zenity.Notify(msg, zenity.Title(WindowTitle))
 }
