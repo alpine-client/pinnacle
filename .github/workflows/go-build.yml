@@ -111,7 +111,8 @@ jobs:
         run: >-
           env
           GOARCH=amd64
-          go build -trimpath -p 4
+          GOOS=linux
+          go build -a -v -trimpath -buildmode=pie -mod=readonly -modcacherw
           -ldflags="-s -w -X main.version=${VERSION}"
           -o bin/pinnacle-linux-amd64
           .
