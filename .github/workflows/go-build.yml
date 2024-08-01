@@ -94,16 +94,7 @@ jobs:
 
       - name: Install dependencies
         run: >-
-          sudo apt-get update &&
-          sudo apt-get install -y
-          libgl-dev
-          libx11-dev
-          libxrandr-dev
-          libxxf86vm-dev
-          libxi-dev
-          libxcursor-dev
-          libxinerama-dev
-          libxkbcommon-dev
+          sudo apt-get update
 
       - name: Set up Go
         uses: WillAbides/setup-go-faster@a0ff5217a7d2567ed6ff1aa2b7d8f9d58173b2c9 # v1.14.0
