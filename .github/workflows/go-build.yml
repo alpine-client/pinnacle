@@ -43,8 +43,10 @@ jobs:
 
       - name: Build binary
         run: >-
-          go build
-          -trimpath -p 4
+          env
+          GOARCH=amd64
+          GOOS=windows
+          go build -a -v -trimpath -mod=readonly -modcacherw
           -ldflags="-H=windowsgui -s -w -X main.version=${VERSION}"
           -o bin/pinnacle-windows-amd64.exe
           .
@@ -144,7 +146,7 @@ jobs:
           env
           GOARCH=amd64
           GOOS=darwin
-          go build -trimpath -buildmode=pie -p 3
+          go build -a -v -trimpath -buildmode=pie -mod=readonly -modcacherw
           -ldflags="-s -w -X main.version=${VERSION}"
           -o bin/pinnacle-darwin-amd64
           .
@@ -154,7 +156,7 @@ jobs:
           env
           GOARCH=arm64
           GOOS=darwin
-          go build -trimpath -buildmode=pie -p 3
+          go build -a -v -trimpath -buildmode=pie -mod=readonly -modcacherw
           -ldflags="-s -w -X main.version=${VERSION}"
           -o bin/pinnacle-darwin-arm64
           .
