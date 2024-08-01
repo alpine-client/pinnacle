@@ -21,8 +21,8 @@ build() {
   export CGO_LDFLAGS="${LDFLAGS}"
 
   cd "$srcdir/$_gitname-$pkgver"
-  go build -trimpath -buildmode=pie -mod=readonly -modcacherw \
-    -ldflags="-s -w -compressdwarf=false -linkmode=external -X main.version=$pkgver" \
+  go build -a -trimpath -buildmode=pie -mod=readonly -modcacherw \
+    -ldflags="-s -w -linkmode=external -X main.version=$pkgver" \
     -o alpine-client .
 }
 
