@@ -1,7 +1,5 @@
 package ui
 
-import "github.com/AllenDang/giu"
-
 type ProgressiveTask struct {
 	label    string
 	progress float32
@@ -26,8 +24,9 @@ func (p *ProgressiveTask) UpdateProgress(v float32, label ...string) {
 			_ = dialog.Text(label[0])
 		}
 	}
-	if window != nil {
-		giu.Update()
+	if splashWidget != nil {
+		splashWidget.SetProgress(float64(v))
+		splashWindow.Invalidate()
 	}
 }
 

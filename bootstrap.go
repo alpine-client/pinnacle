@@ -35,12 +35,8 @@ func runTasks(done chan bool) {
 
 	results := make(chan TaskResult, 2)
 
-	go func() {
-		results <- checkJRE(ctx)
-	}()
-	go func() {
-		results <- checkLauncher(ctx)
-	}()
+	results <- checkJRE(ctx)
+	results <- checkLauncher(ctx)
 
 	// Check errors from both tasks
 	var res TaskResult
@@ -57,14 +53,14 @@ func runTasks(done chan bool) {
 
 	if failed != nil {
 		cleanup()
-		ui.Close()
+		ui.CloseSplash()
 		ui.DisplayError(failed.ctx, failed.err)
 	} else {
 		start := runLauncher(ctx)
 		if start.err != nil {
 			cleanup()
 		}
-		ui.Close()
+		ui.CloseSplash()
 		ui.DisplayError(start.ctx, start.err)
 	}
 

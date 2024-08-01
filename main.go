@@ -36,7 +36,7 @@ func Run() {
 		ui.NotifyNewUpdate()
 	}
 
-	ui.Setup(ctx, assets)
+	ui.SetupSplash(assets)
 
 	err := os.MkdirAll(alpinePath(), os.ModePerm)
 	if err != nil {
@@ -47,8 +47,9 @@ func Run() {
 	done := make(chan bool)
 	go runTasks(done)
 
-	ui.Render()
+	go ui.RunSplash()
 
 	<-done
 	close(done)
+	os.Exit(0)
 }
