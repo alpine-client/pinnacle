@@ -77,6 +77,11 @@ jobs:
           --tsmode RFC3161
           --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
           bin/pinnacle-windows-amd64.exe
+      - name: Sign AMD64
+        env:
+          GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
+          GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
+        run: ./ci/sign.sh "bin/pinnacle-windows-amd64.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
