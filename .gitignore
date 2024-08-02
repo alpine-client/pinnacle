@@ -4,6 +4,7 @@
 #
 # Binaries for programs and plugins
 /bin/
+*.jar
 *.exe
 *.exe~
 *.dll
