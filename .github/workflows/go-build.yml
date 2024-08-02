@@ -5,8 +5,8 @@ on:
     branches:
       - 'master'
       - 'test/**'
-    paths:
-      - 'VERSION'
+#    paths:
+#      - 'VERSION'
 
 permissions:
   contents: write
@@ -41,7 +41,7 @@ jobs:
         run: |
           cp -r pkg/windows/syso/* .
 
-      - name: Build binary
+      - name: Build AMD64
         run: >-
           env
           GOARCH=amd64
@@ -49,6 +49,16 @@ jobs:
           go build -a -v -trimpath -mod=readonly -modcacherw
           -ldflags="-H=windowsgui -s -w -X main.version=${VERSION}"
           -o bin/pinnacle-windows-amd64.exe
+          .
+
+      - name: Build ARM64
+        run: >-
+          env
+          GOARCH=arm64
+          GOOS=windows
+          go build -a -v -trimpath -mod=readonly -modcacherw
+          -ldflags="-H=windowsgui -s -w -X main.version=${VERSION}"
+          -o bin/pinnacle-windows-arm64.exe
           .
 
       - name: Authenticate with Google Cloud
@@ -66,22 +76,17 @@ jobs:
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign binary
-        run: >-
-          java -jar jsign.jar
-          --storetype GOOGLECLOUD
-          --storepass "$(gcloud auth print-access-token)"
-          --keystore "${{ secrets.GCP_KEYSTORE }}"
-          --alias "${{ secrets.GCP_KEY_ALIAS }}"
-          --certfile pinnacle-certificate.pem
-          --tsmode RFC3161
-          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
-          bin/pinnacle-windows-amd64.exe
       - name: Sign AMD64
         env:
           GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
           GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
         run: ./ci/sign.sh "bin/pinnacle-windows-amd64.exe"
+
+      - name: Sign ARM64
+        env:
+          GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
+          GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
+        run: ./ci/sign.sh "bin/pinnacle-windows-arm64.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
@@ -112,7 +117,7 @@ jobs:
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Build binary
+      - name: Build AMD64
         run: >-
           env
           GOARCH=amd64
@@ -120,6 +125,16 @@ jobs:
           go build -a -v -trimpath -buildmode=pie -mod=readonly -modcacherw
           -ldflags="-s -w -X main.version=${VERSION}"
           -o bin/pinnacle-linux-amd64
+          .
+
+      - name: Build ARM64
+        run: >-
+          env
+          GOARCH=arm64
+          GOOS=linux
+          go build -a -v -trimpath -buildmode=pie -mod=readonly -modcacherw
+          -ldflags="-s -w -X main.version=${VERSION}"
+          -o bin/pinnacle-linux-arm64
           .
 
       - name: Upload artifact
@@ -147,7 +162,7 @@ jobs:
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Build AMD64 binary
+      - name: Build AMD64
         run: >-
           env
           GOARCH=amd64
@@ -157,7 +172,7 @@ jobs:
           -o bin/pinnacle-darwin-amd64
           .
 
-      - name: Build ARM64 binary
+      - name: Build ARM64
         run: >-
           env
           GOARCH=arm64
@@ -205,6 +220,12 @@ jobs:
           sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
           iscc.exe "$AMD_ISS"
 
+      - name: Package ARM64 with InnoSetup
+        run: |
+          ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
+          sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
+          iscc.exe "$ARM_ISS"
+
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@71fee32a0bb7e97b4d33d548e7d957010649d8fa # v2.1.3
         with:
@@ -220,17 +241,17 @@ jobs:
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign installer
-        run: >-
-          java -jar jsign.jar
-          --storetype GOOGLECLOUD
-          --storepass "$(gcloud auth print-access-token)"
-          --keystore "${{ secrets.GCP_KEYSTORE }}"
-          --alias "${{ secrets.GCP_KEY_ALIAS }}"
-          --certfile pinnacle-certificate.pem
-          --tsmode RFC3161
-          --tsaurl http://timestamp.globalsign.com/tsa/r6advanced1
-          "build/out/AlpineClientSetup-${VERSION}-x86_64.exe"
+      - name: Sign AMD64
+        env:
+          GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
+          GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
+        run: ./ci/sign.sh "build/out/AlpineClientSetup-${VERSION}-x86_64.exe"
+
+      - name: Sign ARM64
+        env:
+          GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
+          GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
+        run: ./ci/sign.sh "build/out/AlpineClientSetup-${VERSION}-ARM64.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
@@ -298,23 +319,56 @@ jobs:
           # Create output folder
           mkdir -p build/out
 
-      - name: Package RPM
+      - name: Package AMD64 RPM
         run: >-
           rpmbuild -bb
           ~/rpmbuild/SPECS/pinnacle.spec
           --define "_rpmdir build/out"
           --target=x86_64
 
-      - name: Package DEB
+      - name: Package ARM64 DEB
         run: >-
           dpkg-deb -Zgzip
           --build ~/debbuild/alpine-client
           "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
 
-      - name: Tidy artifact
+      - name: Swap AMD64 binary for ARM64
+        run: |
+          # Remove amd64 binaries
+          rm -f ~/rpmbuild/SOURCES/pinnacle-darwin-amd64
+          rm -f ~/debbuild/alpine-client/usr/bin/alpine-client
+
+          # Edit arch & binary name in spec/control files
+          sed -i -e 's/linux-amd64/linux-arm64/g' -e 's/x86_64/aarch64/g' ~/rpmbuild/SPECS/pinnacle.spec
+          sed -i 's/amd64/arm64/g' ~/debbuild/alpine-client/DEBIAN/control
+
+          # Copy arm64 binaries
+          cp bin/pinnacle-linux-arm64 ~/rpmbuild/SOURCES/
+          cp bin/pinnacle-linux-arm64 ~/debbuild/alpine-client/usr/bin/alpine-client
+
+          # Make binaries executable
+          chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-arm64
+          chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
+
+      - name: Package ARM64 RPM
+        run: >-
+          rpmbuild -bb
+          ~/rpmbuild/SPECS/pinnacle.spec
+          --define "_rpmdir build/out"
+          --target=aarch64
+
+      - name: Package ARM64 DEB
+        run: >-
+          dpkg-deb -Zgzip
+          --build ~/debbuild/alpine-client
+          "build/out/alpine-client_${VERSION}-${RELEASE}_arm64.deb"
+
+      - name: Tidy artifacts
         run: |
           cp -r build/out/x86_64/* build/out/
+          cp -r build/out/aarch64/* build/out/
           rm -rf build/out/x86_64
+          rm -rf build/out/aarch64
 
       - name: Upload artifact
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
