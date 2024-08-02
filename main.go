@@ -34,19 +34,33 @@ func Run() {
 	done := make(chan bool)
 	defer close(done)
 
+	type task struct {
+		job func(context.Context) error
+		f   func(context.Context, error) error
+	}
+
 	go func() {
-		tasks := []func(c context.Context) error{
-			setup,
-			checkJRE,
-			checkLauncher,
-			startLauncher,
-		}
-		for _, task := range tasks {
-			err := task(ctx)
+		for _, t := range []task{
+			{
+				job: setup,
+				f:   cleanup,
+			},
+			{
+				job: checkJava,
+				f:   download,
+			},
+			{
+				job: checkLauncher,
+				f:   download,
+			},
+			{
+				job: startLauncher,
+				f:   cleanup,
+			},
+		} {
+			err := t.f(ctx, t.job(ctx))
 			if err != nil {
-				cleanup()
-				ui.Close()
-				ui.DisplayError(ctx, err)
+				_ = cleanup(ctx, err)
 				break
 			}
 		}
@@ -54,8 +68,6 @@ func Run() {
 		ui.Close()
 		done <- true
 	}()
-
-	ui.Render()
 
 	<-done
 	if logFile != nil {

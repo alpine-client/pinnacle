@@ -55,6 +55,9 @@ func (pt *ProgressiveTask) UpdateProgress(v float64, label ...string) {
 }
 
 func Render() {
+	if dialog != nil {
+		return
+	}
 	var err error
 	dialog, err = zenity.Progress(
 		zenity.NoCancel(),

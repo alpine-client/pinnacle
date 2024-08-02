@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -20,12 +21,18 @@ type MetadataResponse struct {
 	Size uint32 `json:"size"`
 }
 
-type JreManifest struct {
+type JavaManifest struct {
 	Hash string `json:"checksum"`
 	Size uint32 `json:"size"`
 }
 
-var logFile *os.File
+var (
+	logFile          *os.File
+	metadataResponse MetadataResponse
+
+	errMissingJava     = errors.New("missing java")
+	errMissingLauncher = errors.New("missing launcher")
+)
 
 func setup(_ context.Context) error {
 	var err error
@@ -44,6 +51,27 @@ func setup(_ context.Context) error {
 	return nil
 }
 
+func cleanup(ctx context.Context, err error) error {
+	if err != nil {
+		ui.DisplayError(ctx, err)
+		_ = os.RemoveAll(alpinePath("launcher.jar"))
+		_ = os.RemoveAll(alpinePath("jre", "17"))
+	}
+	return nil
+}
+
+func download(ctx context.Context, err error) error {
+	switch {
+	case errors.Is(err, errMissingLauncher):
+		ui.Render()
+		return downloadLauncher(ctx)
+	case errors.Is(err, errMissingJava):
+		ui.Render()
+		return downloadJava(ctx)
+	}
+	return cleanup(ctx, err)
+}
+
 func fetchMetadata(ctx context.Context, url string) (*MetadataResponse, error) {
 	resp, err := getFromURL(ctx, url)
 	if err != nil {
@@ -56,13 +84,12 @@ func fetchMetadata(ctx context.Context, url string) (*MetadataResponse, error) {
 
 	sentry.Breadcrumb(ctx, "decoding response from "+url)
 
-	var res MetadataResponse
-	err = json.NewDecoder(resp.Body).Decode(&res)
+	err = json.NewDecoder(resp.Body).Decode(&metadataResponse)
 	if err != nil {
 		return nil, err
 	}
 
-	return &res, nil
+	return &metadataResponse, nil
 }
 
 func fileHashMatches(ctx context.Context, hash string, path string) (bool, error) {
@@ -104,56 +131,51 @@ func checkLauncher(c context.Context) error {
 	targetPath := alpinePath("launcher.jar")
 	if !fileExists(targetPath) {
 		sentry.Breadcrumb(ctx, "missing launcher.jar")
-		goto DOWNLOAD
+		return errMissingLauncher
 	}
 
 	if validHash, _ := fileHashMatches(ctx, launcher.Hash, targetPath); !validHash {
 		sentry.Breadcrumb(ctx, "failed checksum validation")
-		goto DOWNLOAD
+		return errMissingLauncher
 	}
 
 	sentry.Breadcrumb(ctx, "finished checkLauncher (jar existed)")
 	return nil
-
-DOWNLOAD:
-	err = downloadLauncher(ctx, launcher, targetPath)
-	if err != nil {
-		return err
-	}
-	sentry.Breadcrumb(ctx, "finished checkLauncher (jar downloaded)")
-	return nil
 }
 
-func downloadLauncher(ctx context.Context, manifest *MetadataResponse, dest string) error {
+func downloadLauncher(ctx context.Context) error {
 	pt := ui.NewProgressTask("Downloading launcher...")
-	err := downloadFile(ctx, manifest.URL, dest, pt)
+	dest := alpinePath("launcher.jar")
+
+	err := downloadFile(ctx, metadataResponse.URL, dest, pt)
 	if err != nil {
 		return err
 	}
 
 	var validHash bool
-	if validHash, err = fileHashMatches(ctx, manifest.Hash, dest); !validHash {
+	if validHash, err = fileHashMatches(ctx, metadataResponse.Hash, dest); !validHash {
 		sentry.Breadcrumb(ctx, fmt.Sprintf("hash mismatch after download (retrying): %v", err), sentry.LevelError)
 
 		_ = os.RemoveAll(dest)
-		err = downloadFile(ctx, manifest.URL, dest, pt)
+		err = downloadFile(ctx, metadataResponse.URL, dest, pt)
 		if err != nil {
 			return err
 		}
 
-		if validHash, err = fileHashMatches(ctx, manifest.Hash, dest); !validHash {
+		if validHash, err = fileHashMatches(ctx, metadataResponse.Hash, dest); !validHash {
 			sentry.Breadcrumb(ctx, fmt.Sprintf("hash mismatch after download (fatal): %v", err), sentry.LevelError)
 			return err
 		}
 	}
 
+	sentry.Breadcrumb(ctx, "finished checkLauncher (jar downloaded)")
 	pt.UpdateProgress(0.99999, "Starting launcher...")
 	return nil
 }
 
-func checkJRE(c context.Context) error {
+func checkJava(c context.Context) error {
 	pt := ui.NewProgressTask("Preparing Java runtime...")
-	ctx := sentry.NewContext(c, "checkJRE")
+	ctx := sentry.NewContext(c, "checkJava")
 	path := alpinePath("jre", "17")
 
 	sentry.Breadcrumb(ctx, "mkdir "+path)
@@ -171,58 +193,50 @@ func checkJRE(c context.Context) error {
 	}
 
 	var data []byte
-	var manifest JreManifest
+	var manifest JavaManifest
 	javaPath := alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable())
 	manifestPath := alpinePath("jre", "17", "version.json")
 	pt.UpdateProgress(0.50)
 
 	if !fileExists(javaPath) {
 		sentry.Breadcrumb(ctx, "missing java executable")
-		goto DOWNLOAD
+		return errMissingJava
 	}
 	pt.UpdateProgress(0.68)
 
 	if !fileExists(manifestPath) {
 		sentry.Breadcrumb(ctx, "missing manifest")
-		goto DOWNLOAD
+		return errMissingJava
 	}
 	pt.UpdateProgress(0.76)
 
 	data, err = os.ReadFile(manifestPath)
 	if err != nil {
 		sentry.Breadcrumb(ctx, "failed to read manifest file")
-		goto DOWNLOAD
+		return errMissingJava
 	}
 	pt.UpdateProgress(0.85)
 
 	if err = json.Unmarshal(data, &manifest); err != nil {
 		sentry.Breadcrumb(ctx, "failed to unmarshal manifest file")
-		goto DOWNLOAD
+		return errMissingJava
 	}
 	pt.UpdateProgress(0.98)
 
 	if manifest.Hash != jre.Hash {
 		sentry.Breadcrumb(ctx, fmt.Sprintf("checksum from file %s does not match expected %s", manifest.Hash, jre.Hash))
-		goto DOWNLOAD
+		return errMissingJava
 	}
 
-	sentry.Breadcrumb(ctx, "finished checkJRE (existed)")
-	return nil
-
-DOWNLOAD:
-	err = downloadJRE(ctx, jre)
-	if err != nil {
-		return err
-	}
-	sentry.Breadcrumb(ctx, "finished checkJRE (downloaded)")
+	sentry.Breadcrumb(ctx, "finished checkJava (existed)")
 	return nil
 }
 
-func downloadJRE(ctx context.Context, m *MetadataResponse) error {
+func downloadJava(ctx context.Context) error {
 	zipPath := alpinePath("jre", "17", "jre.zip")
 
 	pt := ui.NewProgressTask("Downloading Java...")
-	err := downloadFile(ctx, m.URL, zipPath, pt)
+	err := downloadFile(ctx, metadataResponse.URL, zipPath, pt)
 	if err != nil {
 		return err
 	}
@@ -243,7 +257,7 @@ func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 
 	_ = os.Chmod(alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable()), 0o755)
 
-	bytes, err := json.Marshal(JreManifest{Hash: m.Hash, Size: m.Size})
+	bytes, err := json.Marshal(JavaManifest{Hash: metadataResponse.Hash, Size: metadataResponse.Size})
 	if err != nil {
 		return err
 	}
@@ -256,7 +270,7 @@ func downloadJRE(ctx context.Context, m *MetadataResponse) error {
 	}
 
 	_ = os.Remove(zipPath)
-	sentry.Breadcrumb(ctx, "finished checkJRE (downloaded)")
+	sentry.Breadcrumb(ctx, "finished checkJava (downloaded)")
 	return nil
 }
 
@@ -309,9 +323,4 @@ func startLauncher(c context.Context) error {
 
 	pt.UpdateProgress(0.99)
 	return nil
-}
-
-func cleanup() {
-	_ = os.RemoveAll(alpinePath("launcher.jar"))
-	_ = os.RemoveAll(alpinePath("jre", "17"))
 }

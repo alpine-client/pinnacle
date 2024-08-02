@@ -19,6 +19,8 @@ func DisplayError(ctx context.Context, err error) {
 		return
 	}
 
+	Close() // close progress bar
+
 	message := err.Error()
 
 	id := sentry.CaptureErr(ctx, err)
