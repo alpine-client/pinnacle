@@ -50,7 +50,7 @@ func Run() {
 				break
 			}
 		}
-		time.Sleep(20 * time.Minute)
+
 		ui.Close()
 		done <- true
 	}()
