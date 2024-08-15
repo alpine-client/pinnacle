@@ -37,19 +37,19 @@
     <launchable type="desktop-id">com.alpineclient.AlpineClient.desktop</launchable>
     <screenshots>
         <screenshot type="default">
-            <image type="source" width="1128" height="709">https://api.alpineclientprod.com/uploads/launcher_home_8c99bea736.png</image>
+            <image type="source" width="1128" height="709">https://api.alpineclient.com/uploads/launcher_home_8c99bea736.png</image>
             <caption>Home screen</caption>
         </screenshot>
         <screenshot>
-            <image type="source" width="1128" height="709">https://api.alpineclientprod.com/uploads/launcher_version_selector_aee910f0f8.png</image>
+            <image type="source" width="1128" height="709">https://api.alpineclient.com/uploads/launcher_version_selector_aee910f0f8.png</image>
             <caption>Minecraft version selector</caption>
         </screenshot>
         <screenshot>
-            <image type="source" width="1080" height="675">https://api.alpineclientprod.com/uploads/alpine_gui_6484ddc907.png</image>
+            <image type="source" width="1080" height="675">https://api.alpineclient.com/uploads/alpine_gui_6484ddc907.png</image>
             <caption>In-game module GUI</caption>
         </screenshot>
         <screenshot>
-            <image type="source" width="1080" height="675">https://api.alpineclientprod.com/uploads/alpine_gui_2_21a0a85cff.png</image>
+            <image type="source" width="1080" height="675">https://api.alpineclient.com/uploads/alpine_gui_2_21a0a85cff.png</image>
             <caption>In-game module settings</caption>
         </screenshot>
     </screenshots>
