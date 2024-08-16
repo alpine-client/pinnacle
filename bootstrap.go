@@ -243,11 +243,9 @@ func downloadJava(ctx context.Context) error {
 
 	pt = ui.NewProgressTask("Extracting Java...")
 	extractedPath := alpinePath("jre", "17", "extracted")
+
 	sentry.Breadcrumb(ctx, "cleaning up path "+extractedPath)
-	err = os.RemoveAll(extractedPath)
-	if err != nil {
-		return err
-	}
+	sentry.CaptureErr(ctx, os.RemoveAll(extractedPath))
 
 	sentry.Breadcrumb(ctx, "extracting zip "+zipPath)
 	err = extractAll(ctx, zipPath, extractedPath, pt)

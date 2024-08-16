@@ -7,9 +7,9 @@ pkgdesc='A lightweight multi-version Minecraft modpack'
 arch=('x86_64')
 url='https://alpineclient.com'
 license=('MPL2')
-depends=('glibc' 'xorg-xrandr' 'xdg-desktop-portal')
+depends=('glibc' 'xorg-xrandr' 'xdg-desktop-portal' 'zenity')
 options=(!strip !debug)
-makedepends=('go>=1.22.5' 'git')
+makedepends=('go>=1.23' 'git')
 source=("${_gitname}-${pkgver}.tar.gz::https://github.com/alpine-client/$_gitname/archive/$pkgver.tar.gz")
 # sha256sum is auto-generated in GitHub Actions workflow
 sha256sums=('SKIP')
