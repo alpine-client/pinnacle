@@ -273,6 +273,7 @@ jobs:
           sparse-checkout: |
             pkg/linux
             VERSION
+            ci
 
       - name: Download binaries
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -288,10 +289,14 @@ jobs:
           debhelper
           devscripts
           dpkg-dev
+          libfuse2
 
       - name: Read version
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Download AppImageTool
+        run: ./ci/download-appimagetool.sh
 
       - name: Prepare for packaging
         run: |
@@ -300,21 +305,26 @@ jobs:
           sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
           sed -i "s/^Version:.*/Version: ${VERSION}-${RELEASE}/" pkg/linux/deb/DEBIAN/control
           
-          # Set up rpmbuild/debbuild file tree
+          # Set up rpmbuild/debbuild/appimage file tree
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           mkdir -p ~/debbuild/alpine-client/{DEBIAN,usr/bin,usr/share/applications,usr/share/pixmaps}
+          mkdir -p ~/appbuild/AlpineClient.AppDir/usr/{bin,share/{icons/hicolor/scalable/apps,licenses/alpine-client}}
 
           # Copy resources
           cp -r pkg/linux/rpm/* ~/rpmbuild/
           cp -r pkg/linux/deb/* ~/debbuild/alpine-client/
+          cp -r pkg/linux/appimage/* ~/appbuild/AlpineClient.AppDir/
 
           # Copy binaries
           cp bin/pinnacle-linux-amd64 ~/rpmbuild/SOURCES/
           cp bin/pinnacle-linux-amd64 ~/debbuild/alpine-client/usr/bin/alpine-client
+          cp bin/pinnacle-linux-amd64 ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
           
           # Make binaries executable
           chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-amd64
           chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
+          chmod +x ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
+          chmod +x ~/appbuild/AlpineClient.AppDir/AppRun
 
           # Create output folder
           mkdir -p build/out
@@ -326,11 +336,16 @@ jobs:
           --define "_rpmdir build/out"
           --target=x86_64
 
-      - name: Package ARM64 DEB
+      - name: Package AMD64 DEB
         run: >-
           dpkg-deb -Zgzip
           --build ~/debbuild/alpine-client
           "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
+
+      - name: Package AMD64 AppImage
+        run: >-
+          ./appimagetool-x86_64.AppImage ~/appbuild/AlpineClient.AppDir
+          "build/out/Alpine_Client-${VERSION}-x86_64.AppImage"
 
       - name: Swap AMD64 binary for ARM64
         run: |
@@ -365,8 +380,12 @@ jobs:
 
       - name: Tidy artifacts
         run: |
-          cp -r build/out/x86_64/* build/out/
-          cp -r build/out/aarch64/* build/out/
+          if [ -d "build/out/x86_64" ]; then
+            cp -r build/out/x86_64/* build/out/
+          fi
+          if [ -d "build/out/aarch64" ]; then
+            cp -r build/out/aarch64/* build/out/
+          fi
           rm -rf build/out/x86_64
           rm -rf build/out/aarch64
 
