@@ -308,7 +308,7 @@ jobs:
           # Set up rpmbuild/debbuild/appimage file tree
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           mkdir -p ~/debbuild/alpine-client/{DEBIAN,usr/bin,usr/share/applications,usr/share/pixmaps}
-          mkdir -p ~/appbuild/AlpineClient.AppDir/usr/{bin,share/{applications,icons/hicolor/scalable/apps,licenses/alpine-client}}
+          mkdir -p ~/appbuild/AlpineClient.AppDir/usr/{bin,share/{icons/hicolor/scalable/apps,licenses/alpine-client}}
 
           # Copy resources
           cp -r pkg/linux/rpm/* ~/rpmbuild/
@@ -380,8 +380,12 @@ jobs:
 
       - name: Tidy artifacts
         run: |
-          cp -r build/out/x86_64/* build/out/
-          cp -r build/out/aarch64/* build/out/
+          if [ -d "build/out/x86_64" ]; then
+            cp -r build/out/x86_64/* build/out/
+          fi
+          if [ -d "build/out/aarch64" ]; then
+            cp -r build/out/aarch64/* build/out/
+          fi
           rm -rf build/out/x86_64
           rm -rf build/out/aarch64
 
