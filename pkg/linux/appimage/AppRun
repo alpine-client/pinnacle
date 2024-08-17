@@ -1,0 +1,6 @@
+#!/bin/sh
+# https://github.com/AppImage/AppImageKit/blob/e8dadbb09fed3ae3c3d5a5a9ba2c47a072f71c40/resources/AppRun
+SELF=$(readlink -f "$0")
+HERE=${SELF%/*}
+export PATH="${HERE}/usr/bin/:${HERE}/usr/sbin/:${HERE}/usr/games/:${HERE}/bin/:${HERE}/sbin/${PATH:+:$PATH}"
+exec "${HERE}/usr/bin/alpine-client"
