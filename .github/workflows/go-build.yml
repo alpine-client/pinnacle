@@ -345,7 +345,7 @@ jobs:
       - name: Package AMD64 AppImage
         run: >-
           ./appimagetool-x86_64.AppImage ~/appbuild/AlpineClient.AppDir
-          "build/out/AlpineClient-${VERSION}-${RELEASE}-x86_64.AppImage"
+          "build/out/Alpine_Client-${VERSION}-x86_64.AppImage"
 
       - name: Swap AMD64 binary for ARM64
         run: |
