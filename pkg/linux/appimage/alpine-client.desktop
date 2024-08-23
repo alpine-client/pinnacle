@@ -4,6 +4,6 @@ Name=Alpine Client
 Comment=A lightweight multi-version Minecraft modpack
 Exec=/usr/bin/alpine-client
 Icon=alpine-client
-Terminal=false
+Terminal=true
 Categories=Game
 Keywords=alpine;client;minecraft;
