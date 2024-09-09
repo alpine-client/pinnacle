@@ -5,7 +5,7 @@
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Crystal Development, LLC"
 #define MyAppURL "https://alpineclient.com/"
-#define MyAppExeName "pinnacle-windows-arm64.exe"
+#define MyAppExeName "pinnacle-windows-amd64.exe"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
@@ -22,15 +22,16 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=D:\a\pinnacle\pinnacle\build\out
-OutputBaseFilename=AlpineClientSetup-{#MyAppVersion}-ARM64
-SetupIconFile=D:\a\pinnacle\pinnacle\pkg\windows\resources\alpine-client.ico
+OutputBaseFilename=AlpineClientSetup-{#MyAppVersion}-x86_64
+SetupIconFile=D:\a\pinnacle\pinnacle\ci\pkg\windows\resources\alpine-client.ico
 Compression=zip
 SolidCompression=no
 WizardStyle=modern
-MinVersion=6.2
-ArchitecturesAllowed=arm64
-ArchitecturesInstallIn64BitMode=arm64
+MinVersion=6.1
+ArchitecturesAllowed=x64
+ArchitecturesInstallIn64BitMode=x64
 UninstallDisplayIcon={uninstallexe}
+PrivilegesRequired=lowest
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -40,8 +41,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "D:\a\pinnacle\pinnacle\bin\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\a\pinnacle\pinnacle\pkg\windows\resources\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\a\pinnacle\pinnacle\pkg\windows\resources\alpine-client.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\a\pinnacle\pinnacle\ci\pkg\windows\resources\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\a\pinnacle\pinnacle\ci\pkg\windows\resources\alpine-client.ico"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

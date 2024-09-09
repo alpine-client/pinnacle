@@ -39,7 +39,7 @@ jobs:
 
       - name: Copy syso files
         run: |
-          cp -r pkg/windows/syso/* .
+          cp -r ci/pkg/windows/syso/* .
 
       - name: Build AMD64
         run: >-
@@ -62,15 +62,15 @@ jobs:
           .
 
       - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@71fee32a0bb7e97b4d33d548e7d957010649d8fa # v2.1.3
+        uses: google-github-actions/auth@62cf5bd3e4211a0a0b51f2c6d6a37129d828611d # v2.1.5
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
       - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
+        uses: google-github-actions/setup-gcloud@f0990588f1e5b5af6827153b93673613abdc6ec7 # v2.1.1
 
       - name: Download jsign
-        run: ./ci/download-jsign.sh
+        run: ./ci/scripts/download-jsign.sh
 
       - name: Decode certificate
         run: |
@@ -80,16 +80,16 @@ jobs:
         env:
           GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
           GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
-        run: ./ci/sign.sh "bin/pinnacle-windows-amd64.exe"
+        run: ./ci/scripts/sign.sh "bin/pinnacle-windows-amd64.exe"
 
       - name: Sign ARM64
         env:
           GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
           GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
-        run: ./ci/sign.sh "bin/pinnacle-windows-arm64.exe"
+        run: ./ci/scripts/sign.sh "bin/pinnacle-windows-arm64.exe"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: windows-binaries
           path: bin
@@ -138,7 +138,7 @@ jobs:
           .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: linux-binaries
           path: bin
@@ -183,7 +183,7 @@ jobs:
           .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: macos-binaries
           path: bin
@@ -200,9 +200,9 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           sparse-checkout: |
-            pkg/windows
+            ci/pkg/windows
+            ci/scripts
             VERSION
-            ci
 
       - name: Download binaries
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -216,26 +216,26 @@ jobs:
 
       - name: Package AMD64 with InnoSetup
         run: |
-          AMD_ISS=pkg/windows/iss/PackagePinnacle-amd64.iss
+          AMD_ISS=ci/pkg/windows/iss/PackagePinnacle-amd64.iss
           sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
           iscc.exe "$AMD_ISS"
 
       - name: Package ARM64 with InnoSetup
         run: |
-          ARM_ISS=pkg/windows/iss/PackagePinnacle-arm64.iss
+          ARM_ISS=ci/pkg/windows/iss/PackagePinnacle-arm64.iss
           sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
           iscc.exe "$ARM_ISS"
 
       - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@71fee32a0bb7e97b4d33d548e7d957010649d8fa # v2.1.3
+        uses: google-github-actions/auth@62cf5bd3e4211a0a0b51f2c6d6a37129d828611d # v2.1.5
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
       - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200 # v2.1.0
+        uses: google-github-actions/setup-gcloud@f0990588f1e5b5af6827153b93673613abdc6ec7 # v2.1.1
 
       - name: Download jsign
-        run: ./ci/download-jsign.sh
+        run: ./ci/scripts/download-jsign.sh
 
       - name: Decode certificate
         run: |
@@ -245,16 +245,16 @@ jobs:
         env:
           GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
           GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
-        run: ./ci/sign.sh "build/out/AlpineClientSetup-${VERSION}-x86_64.exe"
+        run: ./ci/scripts/sign.sh "build/out/AlpineClientSetup-${VERSION}-x86_64.exe"
 
       - name: Sign ARM64
         env:
           GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
           GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
-        run: ./ci/sign.sh "build/out/AlpineClientSetup-${VERSION}-ARM64.exe"
+        run: ./ci/scripts/sign.sh "build/out/AlpineClientSetup-${VERSION}-ARM64.exe"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: windows-installers
           path: build/out
@@ -267,11 +267,12 @@ jobs:
     needs: [ build_linux ]
 
     steps:
-      - name: Checkout pkg files
+      - name: Checkout ci/pkg files
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           sparse-checkout: |
-            pkg/linux
+            ci/pkg/linux
+            ci/scripts
             VERSION
 
       - name: Download binaries
@@ -288,33 +289,42 @@ jobs:
           debhelper
           devscripts
           dpkg-dev
+          libfuse2
 
       - name: Read version
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
+      - name: Download AppImageTool
+        run: ./ci/scripts/download-appimagetool.sh
+
       - name: Prepare for packaging
         run: |
           # Edit version in spec/control files
-          sed -i "s/^Version:.*/Version: ${VERSION}/" pkg/linux/rpm/SPECS/pinnacle.spec
-          sed -i "s/^Release:.*/Release: ${RELEASE}/" pkg/linux/rpm/SPECS/pinnacle.spec
-          sed -i "s/^Version:.*/Version: ${VERSION}-${RELEASE}/" pkg/linux/deb/DEBIAN/control
+          sed -i "s/^Version:.*/Version: ${VERSION}/" ci/pkg/linux/rpm/SPECS/pinnacle.spec
+          sed -i "s/^Release:.*/Release: ${RELEASE}/" ci/pkg/linux/rpm/SPECS/pinnacle.spec
+          sed -i "s/^Version:.*/Version: ${VERSION}-${RELEASE}/" ci/pkg/linux/deb/DEBIAN/control
           
-          # Set up rpmbuild/debbuild file tree
+          # Set up rpmbuild/debbuild/appimage file tree
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           mkdir -p ~/debbuild/alpine-client/{DEBIAN,usr/bin,usr/share/applications,usr/share/pixmaps}
+          mkdir -p ~/appbuild/AlpineClient.AppDir/usr/{bin,share/{icons/hicolor/scalable/apps,licenses/alpine-client}}
 
           # Copy resources
-          cp -r pkg/linux/rpm/* ~/rpmbuild/
-          cp -r pkg/linux/deb/* ~/debbuild/alpine-client/
+          cp -r ci/pkg/linux/rpm/* ~/rpmbuild/
+          cp -r ci/pkg/linux/deb/* ~/debbuild/alpine-client/
+          cp -r ci/pkg/linux/appimage/* ~/appbuild/AlpineClient.AppDir/
 
           # Copy binaries
           cp bin/pinnacle-linux-amd64 ~/rpmbuild/SOURCES/
           cp bin/pinnacle-linux-amd64 ~/debbuild/alpine-client/usr/bin/alpine-client
+          cp bin/pinnacle-linux-amd64 ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
           
           # Make binaries executable
           chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-amd64
           chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
+          chmod +x ~/appbuild/AlpineClient.AppDir/usr/bin/alpine-client
+          chmod +x ~/appbuild/AlpineClient.AppDir/AppRun
 
           # Create output folder
           mkdir -p build/out
@@ -326,11 +336,16 @@ jobs:
           --define "_rpmdir build/out"
           --target=x86_64
 
-      - name: Package ARM64 DEB
+      - name: Package AMD64 DEB
         run: >-
           dpkg-deb -Zgzip
           --build ~/debbuild/alpine-client
           "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
+
+      - name: Package AMD64 AppImage
+        run: >-
+          ./appimagetool-x86_64.AppImage ~/appbuild/AlpineClient.AppDir
+          "build/out/Alpine_Client-${VERSION}-x86_64.AppImage"
 
       - name: Swap AMD64 binary for ARM64
         run: |
@@ -365,13 +380,17 @@ jobs:
 
       - name: Tidy artifacts
         run: |
-          cp -r build/out/x86_64/* build/out/
-          cp -r build/out/aarch64/* build/out/
+          if [ -d "build/out/x86_64" ]; then
+            cp -r build/out/x86_64/* build/out/
+          fi
+          if [ -d "build/out/aarch64" ]; then
+            cp -r build/out/aarch64/* build/out/
+          fi
           rm -rf build/out/x86_64
           rm -rf build/out/aarch64
 
       - name: Upload artifact
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: linux-installers
           path: build/out
@@ -384,11 +403,11 @@ jobs:
     needs: [ build_macos ]
 
     steps:
-      - name: Checkout pkg/darwin
+      - name: Checkout ci/pkg/darwin
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           sparse-checkout: |
-            pkg/darwin
+            ci/pkg/darwin
             VERSION
 
       - name: Download binaries
@@ -404,7 +423,7 @@ jobs:
       - name: Set up environment
         run: |
           # Set env variables for paths
-          APP="pkg/darwin/Alpine Client.app/Contents"
+          APP="ci/pkg/darwin/Alpine Client.app/Contents"
 
           # Create necessary folders
           mkdir "${APP}/MacOS"
@@ -425,7 +444,7 @@ jobs:
       - name: Package AMD64
         run: >-
           pkgbuild
-          --root pkg/darwin
+          --root ci/pkg/darwin
           --identifier com.alpineclient.pinnacle
           --version "${VERSION}"
           --install-location /Applications
@@ -441,14 +460,14 @@ jobs:
       - name: Package ARM64
         run: >-
           pkgbuild
-          --root pkg/darwin
+          --root ci/pkg/darwin
           --identifier com.alpineclient.pinnacle
           --version "${VERSION}"
           --install-location /Applications
           "build/out/AlpineClientSetup-${VERSION}-ARM64.pkg"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: macos-installers
           path: build/out
@@ -491,7 +510,7 @@ jobs:
           cp -r all/linux-installers/* merged/installers/
 
       - name: Upload artifact
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: all-artifacts-${{ env.RELEASE }}
           path: merged
@@ -521,11 +540,11 @@ jobs:
     if: github.ref == 'refs/heads/master'
 
     steps:
-      - name: Checkout pkg/linux/arch
+      - name: Checkout ci/pkg/linux/arch
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           sparse-checkout: |
-            pkg/linux/arch
+            ci/pkg/linux/arch
             VERSION
 
       - name: Read version
@@ -544,15 +563,15 @@ jobs:
 
       - name: Update PKGBUILD
         run: |
-          sed -i "s/pkgver=1.0.0/pkgver=${VERSION}/" pkg/linux/arch/PKGBUILD
-          sed -i "s/sha256sums=('SKIP')/sha256sums=('${CHECKSUM}')/" pkg/linux/arch/PKGBUILD
+          sed -i "s/pkgver=1.0.0/pkgver=${VERSION}/" ci/pkg/linux/arch/PKGBUILD
+          sed -i "s/sha256sums=('SKIP')/sha256sums=('${CHECKSUM}')/" ci/pkg/linux/arch/PKGBUILD
 
       - name: Publish to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@9dfe151cf48f26a957bbd0379c120e79cb990e13 # v2.7.2
+        uses: KSXGitHub/github-actions-deploy-aur@a97f56a8425a7a7f3b8c58607f769c69b089cadb # v3.0.1
         with:
           force_push: true
           pkgname: alpine-client
-          pkgbuild: pkg/linux/arch/PKGBUILD
+          pkgbuild: ci/pkg/linux/arch/PKGBUILD
           commit_message: ${{ env.VERSION }}
           commit_email: ${{ secrets.AUR_EMAIL }}
           commit_username: ${{ secrets.AUR_USERNAME }}

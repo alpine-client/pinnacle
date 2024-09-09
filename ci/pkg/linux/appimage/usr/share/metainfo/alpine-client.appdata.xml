@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-    <id>com.alpineclient.AlpineClient</id>
+    <id>alpine-client</id>
 
     <name>Alpine Client</name>
     <summary>Elevate your Minecraft gameplay</summary>
@@ -34,7 +34,7 @@
         <category>Game</category>
     </categories>
 
-    <launchable type="desktop-id">com.alpineclient.AlpineClient.desktop</launchable>
+    <launchable type="desktop-id">alpine-client.desktop</launchable>
     <screenshots>
         <screenshot type="default">
             <image type="source" width="1128" height="709">https://api.alpineclient.com/uploads/launcher_home_8c99bea736.png</image>
