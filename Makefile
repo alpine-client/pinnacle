@@ -26,4 +26,4 @@ run: build
 
 tidy:
 	go mod tidy -v
-	go run mvdan.cc/gofumpt@v0.6.0 -w -l .
+	go run mvdan.cc/gofumpt@v0.7.0 -w -l .
