@@ -1,7 +1,7 @@
 # This code is licensed under the terms of the MIT license https://opensource.org/license/mit
 # Copyright (c) 2021 Marat Reymers
 #
-# Golden config for golangci-lint v1.59.1
+# Golden config for golangci-lint v1.60.3
 # https://gist.github.com/maratori/47a4d00457a92aa426dbd48a18776322
 #
 # This is the best config for golangci-lint based on my experience and opinion.
@@ -241,14 +241,14 @@ linters:
     - bidichk # checks for dangerous unicode character sequences
     - bodyclose # checks whether HTTP response body is closed successfully
     # - canonicalheader temp disabled due to false flag for `X-GitHub-Api-Version` # checks whether net/http.Header uses canonical header
-    - copyloopvar # detects places where loop variables are copied
+    - copyloopvar # [not necessary from Go 1.22] detects places where loop variables are copied
     - cyclop # checks function and package cyclomatic complexity
     - dupl # tool for code clone detection
     - durationcheck # checks for two durations multiplied together
     - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
     - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
     - exhaustive # checks exhaustiveness of enum switch statements
-    - exportloopref # checks for pointers to enclosing loop variables
+    #- exportloopref # [not necessary from Go 1.22] checks for pointers to enclosing loop variables
     - fatcontext # detects nested contexts in loops
     - forbidigo # forbids identifiers
     - funlen # tool for detection of long functions
