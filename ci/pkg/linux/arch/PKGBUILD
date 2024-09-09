@@ -31,12 +31,12 @@ package() {
         "$srcdir/$_gitname-$pkgver/alpine-client" \
         "$pkgdir/usr/bin/alpine-client"
   install -Dm644 \
-        "$srcdir/$_gitname-$pkgver/pkg/linux/arch/alpine-client.desktop" \
+        "$srcdir/$_gitname-$pkgver/ci/pkg/linux/arch/alpine-client.desktop" \
         "$pkgdir/usr/share/applications/alpine-client.desktop"
   install -Dm644 \
-        "$srcdir/$_gitname-$pkgver/pkg/linux/arch/alpine-client.png" \
+        "$srcdir/$_gitname-$pkgver/ci/pkg/linux/arch/alpine-client.png" \
         "$pkgdir/usr/share/icons/hicolor/256x256/apps/alpine-client.png"
   install -Dm644 \
-        "$srcdir/$_gitname-$pkgver/pkg/linux/arch/LICENSE" \
+        "$srcdir/$_gitname-$pkgver/ci/pkg/linux/arch/LICENSE" \
         "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
