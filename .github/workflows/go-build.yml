@@ -5,8 +5,8 @@ on:
     branches:
       - 'master'
       - 'test/**'
-    paths:
-      - 'VERSION'
+#    paths:
+#      - 'VERSION'
 
 permissions:
   contents: write
