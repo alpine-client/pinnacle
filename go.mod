@@ -1,6 +1,6 @@
 module github.com/alpine-client/pinnacle
 
-go 1.23
+go 1.23.1
 
 require (
 	github.com/getsentry/sentry-go v0.28.1
