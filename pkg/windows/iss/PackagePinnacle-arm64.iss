@@ -31,6 +31,7 @@ MinVersion=6.2
 ArchitecturesAllowed=arm64
 ArchitecturesInstallIn64BitMode=arm64
 UninstallDisplayIcon={uninstallexe}
+PrivilegesRequired=lowest
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
