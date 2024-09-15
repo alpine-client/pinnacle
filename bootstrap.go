@@ -234,8 +234,14 @@ func checkJava(c context.Context) error {
 
 func downloadJava(ctx context.Context) error {
 	archiveName := "jre." + string(archiveFormat(Sys, Arch))
-
 	archivePath := alpinePath("jre", "17", archiveName)
+	extractedPath := alpinePath("jre", "17", "extracted")
+	manifestPath := alpinePath("jre", "17", "version.json")
+
+	sentry.CaptureErr(ctx, os.RemoveAll(archivePath))
+	sentry.CaptureErr(ctx, os.RemoveAll(extractedPath))
+	sentry.CaptureErr(ctx, os.RemoveAll(manifestPath))
+
 	pt := ui.NewProgressTask("Downloading Java...")
 	err := downloadFile(ctx, metadataResponse.URL, archivePath, pt)
 	if err != nil {
@@ -243,12 +249,8 @@ func downloadJava(ctx context.Context) error {
 	}
 
 	pt = ui.NewProgressTask("Extracting Java...")
-	extractedPath := alpinePath("jre", "17", "extracted")
 
-	sentry.Breadcrumb(ctx, "cleaning up path "+extractedPath)
-	sentry.CaptureErr(ctx, os.RemoveAll(extractedPath))
-
-	sentry.Breadcrumb(ctx, "extracting archive "+archivePath)
+	sentry.Breadcrumb(ctx, "extracting archive "+archivePath+" to "+extractedPath)
 	err = extractArchive(ctx, archivePath, extractedPath, pt)
 	if err != nil {
 		return err
@@ -261,7 +263,6 @@ func downloadJava(ctx context.Context) error {
 		return err
 	}
 
-	manifestPath := alpinePath("jre", "17", "version.json")
 	sentry.Breadcrumb(ctx, "writing manifest to file "+manifestPath)
 	err = os.WriteFile(manifestPath, bytes, 0o600)
 	if err != nil {
