@@ -3,6 +3,7 @@ package main
 type (
 	OperatingSystem string
 	Architecture    string
+	ArchiveType     string
 )
 
 const (
@@ -14,6 +15,11 @@ const (
 const (
 	x86   Architecture = "x86"
 	Arm64 Architecture = "arm"
+)
+
+const (
+	Zip   ArchiveType = "zip"
+	TarGz ArchiveType = "tar.gz"
 )
 
 const (

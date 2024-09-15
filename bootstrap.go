@@ -154,7 +154,7 @@ func downloadLauncher(ctx context.Context) error {
 
 	var validHash bool
 	if validHash, err = fileHashMatches(ctx, metadataResponse.Hash, dest); !validHash {
-		sentry.Breadcrumb(ctx, fmt.Sprintf("hash mismatch after download (retrying): %v", err), sentry.LevelError)
+		sentry.Breadcrumb(ctx, fmt.Sprintf("hash mismatch after download (retry): %v", err), sentry.LevelError)
 
 		_ = os.RemoveAll(dest)
 		err = downloadFile(ctx, metadataResponse.URL, dest, pt)
@@ -163,7 +163,7 @@ func downloadLauncher(ctx context.Context) error {
 		}
 
 		if validHash, err = fileHashMatches(ctx, metadataResponse.Hash, dest); !validHash {
-			sentry.Breadcrumb(ctx, fmt.Sprintf("hash mismatch after download (fatal): %v", err), sentry.LevelError)
+			sentry.Breadcrumb(ctx, fmt.Sprintf("hash mismatch after download: %v", err), sentry.LevelError)
 			return err
 		}
 	}
@@ -233,10 +233,11 @@ func checkJava(c context.Context) error {
 }
 
 func downloadJava(ctx context.Context) error {
-	zipPath := alpinePath("jre", "17", "jre.zip")
+	archiveName := "jre." + string(archiveFormat(Sys, Arch))
 
+	archivePath := alpinePath("jre", "17", archiveName)
 	pt := ui.NewProgressTask("Downloading Java...")
-	err := downloadFile(ctx, metadataResponse.URL, zipPath, pt)
+	err := downloadFile(ctx, metadataResponse.URL, archivePath, pt)
 	if err != nil {
 		return err
 	}
@@ -247,8 +248,8 @@ func downloadJava(ctx context.Context) error {
 	sentry.Breadcrumb(ctx, "cleaning up path "+extractedPath)
 	sentry.CaptureErr(ctx, os.RemoveAll(extractedPath))
 
-	sentry.Breadcrumb(ctx, "extracting zip "+zipPath)
-	err = extractAll(ctx, zipPath, extractedPath, pt)
+	sentry.Breadcrumb(ctx, "extracting archive "+archivePath)
+	err = extractArchive(ctx, archivePath, extractedPath, pt)
 	if err != nil {
 		return err
 	}
@@ -267,7 +268,7 @@ func downloadJava(ctx context.Context) error {
 		return err
 	}
 
-	_ = os.Remove(zipPath)
+	_ = os.Remove(archivePath)
 	sentry.Breadcrumb(ctx, "finished checkJava (downloaded)")
 	return nil
 }
