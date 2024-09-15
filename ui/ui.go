@@ -32,6 +32,7 @@ func NewProgressTask(label string) *ProgressiveTask {
 	tasks = append(tasks, pt)
 	if dialog != nil {
 		_ = dialog.Text(label)
+		_ = dialog.Value(0)
 	}
 	return pt
 }
