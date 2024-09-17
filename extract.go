@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alpine-client/pinnacle/sentry"
 	"github.com/alpine-client/pinnacle/ui"
 )
 
@@ -17,7 +16,7 @@ func isSymLink(file *zip.File) bool {
 	return file.Mode()&os.ModeSymlink != 0
 }
 
-func extractSymLink(ctx context.Context, file *zip.File, target string) error {
+func (p *Pinnacle) extractSymLink(ctx context.Context, file *zip.File, target string) error {
 	var rc io.ReadCloser
 	var out []byte
 	var err error
@@ -27,7 +26,7 @@ func extractSymLink(ctx context.Context, file *zip.File, target string) error {
 		return err
 	}
 	defer func() {
-		sentry.CaptureErr(ctx, rc.Close())
+		p.CaptureErr(ctx, rc.Close())
 	}()
 
 	out, err = io.ReadAll(rc)
@@ -43,7 +42,7 @@ func extractSymLink(ctx context.Context, file *zip.File, target string) error {
 	return nil
 }
 
-func extractFile(ctx context.Context, file *zip.File, target string) error {
+func (p *Pinnacle) extractFile(ctx context.Context, file *zip.File, target string) error {
 	var rc io.ReadCloser
 	var out *os.File
 	var err error
@@ -58,7 +57,7 @@ func extractFile(ctx context.Context, file *zip.File, target string) error {
 		return err
 	}
 	defer func() {
-		sentry.CaptureErr(ctx, out.Close())
+		p.CaptureErr(ctx, out.Close())
 	}()
 
 	rc, err = file.Open()
@@ -66,7 +65,7 @@ func extractFile(ctx context.Context, file *zip.File, target string) error {
 		return err
 	}
 	defer func() {
-		sentry.CaptureErr(ctx, rc.Close())
+		p.CaptureErr(ctx, rc.Close())
 	}()
 
 	_, err = io.Copy(out, rc)
@@ -77,13 +76,13 @@ func extractFile(ctx context.Context, file *zip.File, target string) error {
 	return nil
 }
 
-func extractZip(ctx context.Context, src string, dest string, pt *ui.ProgressiveTask) error {
+func (p *Pinnacle) extractZip(ctx context.Context, src string, dest string, pt *ui.ProgressiveTask) error {
 	zipReader, err := zip.OpenReader(src)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		sentry.CaptureErr(ctx, zipReader.Close())
+		p.CaptureErr(ctx, zipReader.Close())
 	}()
 
 	err = os.MkdirAll(dest, os.ModePerm)
@@ -119,7 +118,7 @@ func extractZip(ctx context.Context, src string, dest string, pt *ui.Progressive
 			continue
 		}
 
-		err = extractFile(ctx, file, target)
+		err = p.extractFile(ctx, file, target)
 		if err != nil {
 			return err
 		}
@@ -130,7 +129,7 @@ func extractZip(ctx context.Context, src string, dest string, pt *ui.Progressive
 		if pt != nil {
 			pt.UpdateProgress(float64(progress) / float64(total))
 		}
-		err = extractSymLink(ctx, link, path)
+		err = p.extractSymLink(ctx, link, path)
 		if err != nil {
 			return err
 		}
@@ -139,11 +138,7 @@ func extractZip(ctx context.Context, src string, dest string, pt *ui.Progressive
 	return nil
 }
 
-func extractTar(src string, dest string) error {
-	err := os.MkdirAll(dest, os.ModePerm)
-	if err != nil {
-		return err
-	}
+func (*Pinnacle) extractTar(src string, dest string) error {
 	cmd := exec.Command("tar", "--strip-components=1", "-xzf", src, "-C", dest)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

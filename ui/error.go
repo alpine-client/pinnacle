@@ -3,8 +3,6 @@ package ui
 import (
 	"context"
 	"errors"
-	"log"
-	"log/slog"
 	"os/exec"
 	"runtime"
 	"time"
@@ -15,9 +13,9 @@ import (
 
 // DisplayError closes the progress-bar, sends the error to sentry and displays a pop-up for the user
 // Also adds a breadcrumb to the provided sentry hub connected to the context.
-func DisplayError(ctx context.Context, err error) {
+func DisplayError(ctx context.Context, err error) error {
 	if err == nil {
-		return
+		return nil
 	}
 
 	Close() // close progress bar
@@ -40,12 +38,14 @@ func DisplayError(ctx context.Context, err error) {
 	)
 
 	if errors.Is(choice, zenity.ErrExtraButton) {
-		openSupportWebsite()
+		return openSupportWebsite()
 	}
+
+	return nil
 }
 
 // openSupportWebsite tries to open the specified URL in the default browser.
-func openSupportWebsite() {
+func openSupportWebsite() error {
 	const supportURL string = "https://discord.alpineclient.com"
 	var err error
 
@@ -59,15 +59,13 @@ func openSupportWebsite() {
 	}
 
 	if err != nil {
-		slog.Error(err.Error())
 		// None of the above worked. Create new popup with url.
-		err = zenity.Info(
+		_ = zenity.Info(
 			"Please visit "+supportURL+" for assistance.",
 			zenity.Title("Error"),
 			zenity.InfoIcon,
 		)
-		if err != nil {
-			log.Printf("[ERROR] %v", err)
-		}
+		return err
 	}
+	return nil
 }

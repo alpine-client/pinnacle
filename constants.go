@@ -3,23 +3,17 @@ package main
 type (
 	OperatingSystem string
 	Architecture    string
-	ArchiveType     string
 )
 
 const (
 	Windows OperatingSystem = "windows"
 	Linux   OperatingSystem = "linux"
-	Mac     OperatingSystem = "macos"
+	Mac     OperatingSystem = "darwin"
 )
 
 const (
-	x86   Architecture = "x86"
-	Arm64 Architecture = "arm"
-)
-
-const (
-	Zip   ArchiveType = "zip"
-	TarGz ArchiveType = "tar.gz"
+	x86   Architecture = "amd64"
+	Arm64 Architecture = "arm64"
 )
 
 const (

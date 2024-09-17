@@ -33,7 +33,7 @@ var httpClient = &http.Client{
 	},
 }
 
-func getFromURL(ctx context.Context, url string) (*http.Response, error) {
+func (p *Pinnacle) getFromURL(ctx context.Context, url string) (*http.Response, error) {
 	const maxAttempts = 4
 	var statusCode int
 
@@ -41,41 +41,41 @@ func getFromURL(ctx context.Context, url string) (*http.Response, error) {
 		if i > 0 {
 			<-time.After(time.Second * time.Duration(2<<i)) // Exponential backoff
 		}
-		sentry.Breadcrumb(ctx, fmt.Sprintf("[%d] making request to %s", i+1, url))
+		p.Breadcrumb(ctx, fmt.Sprintf("[%d] making request to %s", i+1, url))
 
 		request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			return nil, err
 		}
-		request.Header.Set("User-Agent", fmt.Sprintf("Pinnacle/%s (%s; %s)", version, Sys, Arch))
+		request.Header.Set("User-Agent", fmt.Sprintf("Pinnacle/%s (%s; %s)", version, p.os, p.arch))
 
 		response, err := httpClient.Do(request)
 		if err != nil {
-			sentry.Breadcrumb(ctx, fmt.Sprintf("[%d] request error: %v", i+1, err), sentry.LevelError)
+			sentry.Breadcrumb(ctx, fmt.Sprintf("[%d] request error: %v", i+1, err), slog.LevelError)
 			continue
 		}
 
 		statusCode = response.StatusCode
-		sentry.Breadcrumb(ctx, fmt.Sprintf("[%d] status code: %d", i+1, statusCode))
+		p.Breadcrumb(ctx, fmt.Sprintf("[%d] status code: %d", i+1, statusCode))
 		if statusCode == http.StatusOK {
 			return response, nil
 		}
 
 		err = response.Body.Close()
 		if err != nil {
-			sentry.Breadcrumb(ctx, fmt.Sprintf("[%d] failed to close body: %v", i+1, err), sentry.LevelError)
+			p.Breadcrumb(ctx, fmt.Sprintf("[%d] failed to close body: %v", i+1, err), slog.LevelError)
 		}
 	}
 	return nil, errors.New("internet failure")
 }
 
-func downloadFile(ctx context.Context, url string, path string, pt *ui.ProgressiveTask) error {
-	resp, err := getFromURL(ctx, url)
+func (p *Pinnacle) downloadFile(ctx context.Context, url string, path string, pt *ui.ProgressiveTask) error {
+	resp, err := p.getFromURL(ctx, url)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		sentry.CaptureErr(ctx, resp.Body.Close())
+		p.CaptureErr(ctx, resp.Body.Close())
 	}()
 
 	file, err := os.Create(path)
@@ -83,7 +83,7 @@ func downloadFile(ctx context.Context, url string, path string, pt *ui.Progressi
 		return err
 	}
 	defer func() {
-		sentry.CaptureErr(ctx, file.Close())
+		p.CaptureErr(ctx, file.Close())
 	}()
 
 	err = copyResponseWithProgress(file, resp, pt)
@@ -119,7 +119,7 @@ func copyResponseWithProgress(dst io.Writer, resp *http.Response, pt *ui.Progres
 			}
 		}
 		if er != nil {
-			if er != io.EOF {
+			if !errors.Is(er, io.EOF) {
 				err = er
 			}
 			break
@@ -128,7 +128,7 @@ func copyResponseWithProgress(dst io.Writer, resp *http.Response, pt *ui.Progres
 	return err
 }
 
-func fetchSentryDSN() string {
+func (p *Pinnacle) fetchSentryDSN() string {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -136,23 +136,24 @@ func fetchSentryDSN() string {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
+		p.logger.Warn(err.Error())
 		return ""
 	}
 	req.Header.Set("User-Agent", fmt.Sprintf("alpine-client/pinnacle/%s (%s)", version, SupportEmail))
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		slog.Warn("unable to fetch sentry DSN", slog.Any("error", err))
+		p.logger.Warn(err.Error())
 		return ""
 	}
 	defer func() {
 		if err = resp.Body.Close(); err != nil {
-			slog.Warn("unable to close response body", slog.Any("error", err))
+			p.logger.Warn("unable to close response body", slog.Any("error", err))
 		}
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		slog.Warn("unable to fetch sentry DSN", "code", resp.StatusCode)
+		p.logger.Warn(fmt.Sprintf("unable to fetch sentry DSN: status code %d", resp.StatusCode))
 		return ""
 	}
 
@@ -163,14 +164,14 @@ func fetchSentryDSN() string {
 	var result response
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
-		slog.Warn("unable to decode sentry DSN response", slog.Any("error", err))
+		p.logger.Warn(err.Error())
 		return ""
 	}
 
 	return result.DSN
 }
 
-func isUpdateAvailable(c context.Context) bool {
+func (p *Pinnacle) isUpdateAvailable(c context.Context) bool {
 	req, err := http.NewRequestWithContext(c, http.MethodGet, GitHubReleaseURL, nil)
 	if err != nil {
 		return false
@@ -185,7 +186,7 @@ func isUpdateAvailable(c context.Context) bool {
 	}
 	defer func() {
 		if err = resp.Body.Close(); err != nil {
-			slog.Warn(err.Error())
+			p.logger.WarnContext(c, err.Error())
 		}
 	}()
 
@@ -222,7 +223,7 @@ func isUpdateAvailable(c context.Context) bool {
 
 	published, err := time.Parse(time.RFC3339, result.PublishedAt)
 	if err != nil {
-		slog.Warn(err.Error())
+		p.logger.WarnContext(c, err.Error())
 		return false
 	}
 
