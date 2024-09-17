@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"log/slog"
 	"os/exec"
 	"runtime"
 	"time"
@@ -58,7 +59,7 @@ func openSupportWebsite() {
 	}
 
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
+		slog.Error(err.Error())
 		// None of the above worked. Create new popup with url.
 		err = zenity.Info(
 			"Please visit "+supportURL+" for assistance.",

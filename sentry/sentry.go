@@ -3,6 +3,7 @@ package sentry
 import (
 	"context"
 	"log"
+	"log/slog"
 	"os"
 	"runtime"
 	"time"
@@ -18,7 +19,7 @@ const (
 
 func Start(release string, dsn string) {
 	if dsn == "" {
-		log.Println("[WARN] missing sentry DSN")
+		slog.Warn("missing sentry DSN")
 		return
 	}
 	err := sentry.Init(sentry.ClientOptions{
@@ -28,7 +29,7 @@ func Start(release string, dsn string) {
 		Transport:        sentry.NewHTTPSyncTransport(),
 	})
 	if err != nil {
-		log.Printf("[WARN] unable to start sentry: %v", err)
+		slog.Warn("unable to start sentry: %v", err)
 		return
 	}
 	enabled = true
@@ -82,7 +83,7 @@ func CaptureErr(ctx context.Context, err error) *sentry.EventID {
 	if err == nil {
 		return nil
 	}
-	log.Printf("[ERROR] %v", err)
+	slog.Error(err.Error())
 	if !enabled {
 		return nil
 	}

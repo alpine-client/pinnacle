@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/alpine-client/pinnacle/sentry"
@@ -34,7 +34,7 @@ var (
 	errMissingLauncher = errors.New("missing launcher")
 )
 
-func setup(_ context.Context) error {
+func setup() error {
 	var err error
 
 	err = os.MkdirAll(alpinePath("logs"), os.ModePerm) // note: creates .alpineclient AND .alpineclient/logs
@@ -46,7 +46,8 @@ func setup(_ context.Context) error {
 	if err != nil {
 		return err
 	}
-	log.SetOutput(logFile)
+
+	slog.SetDefault(slog.New(slog.NewTextHandler(io.MultiWriter(os.Stdout, logFile), nil)))
 
 	return nil
 }
@@ -115,9 +116,8 @@ func fileHashMatches(ctx context.Context, hash string, path string) (bool, error
 	return false, fmt.Errorf("hash mismatch: got %s expected %s", result, hash)
 }
 
-func checkLauncher(c context.Context) error {
+func checkLauncher(ctx context.Context) error {
 	pt := ui.NewProgressTask("Preparing launcher...")
-	ctx := sentry.NewContext(c, "checkLauncher")
 
 	sentry.Breadcrumb(ctx, "fetching metadata from /pinnacle")
 	pt.UpdateProgress(0.20)
@@ -173,9 +173,8 @@ func downloadLauncher(ctx context.Context) error {
 	return nil
 }
 
-func checkJava(c context.Context) error {
+func checkJava(ctx context.Context) error {
 	pt := ui.NewProgressTask("Preparing Java runtime...")
-	ctx := sentry.NewContext(c, "checkJava")
 	path := alpinePath("jre", "17")
 
 	sentry.Breadcrumb(ctx, "mkdir "+path)
@@ -251,9 +250,14 @@ func downloadJava(ctx context.Context) error {
 	pt = ui.NewProgressTask("Extracting Java...")
 
 	sentry.Breadcrumb(ctx, "extracting archive "+archivePath+" to "+extractedPath)
-	err = extractArchive(ctx, archivePath, extractedPath, pt)
-	if err != nil {
-		return err
+
+	if Sys == Linux && Arch == Arm64 {
+		err = extractTar(archivePath, extractedPath)
+	} else {
+		err = extractZip(ctx, archivePath, extractedPath, pt)
+		if err != nil {
+			return err
+		}
 	}
 
 	_ = os.Chmod(alpinePath("jre", "17", "extracted", "bin", Sys.javaExecutable()), 0o755)
@@ -274,8 +278,7 @@ func downloadJava(ctx context.Context) error {
 	return nil
 }
 
-func startLauncher(c context.Context) error {
-	ctx := sentry.NewContext(c, "startLauncher")
+func startLauncher(ctx context.Context) error {
 	pt := ui.NewProgressTask("Starting launcher...")
 	pt.UpdateProgress(0.50)
 

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -83,18 +81,4 @@ func alpinePath(subs ...string) string {
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
-}
-
-func safeUint64ToInt64(val uint64) (int64, error) {
-	if val > math.MaxInt64 {
-		return 0, fmt.Errorf("integer overflow: cannot convert %d to int64", val)
-	}
-	return int64(val), nil
-}
-
-func safeInt64ToUint32(val int64) (uint32, error) {
-	if val < 0 || val > math.MaxUint32 {
-		return 0, fmt.Errorf("integer overflow: cannot convert %d to uint32", val)
-	}
-	return uint32(val), nil
 }

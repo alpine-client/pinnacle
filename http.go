@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -132,7 +132,9 @@ func fetchSentryDSN() string {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, MetadataURL+"/sentry", nil)
+	const endpoint = MetadataURL + "/sentry"
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return ""
 	}
@@ -140,14 +142,19 @@ func fetchSentryDSN() string {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		log.Printf("unable to fetch sentry DSN: %v", err)
+		slog.Warn("unable to fetch sentry DSN", slog.Any("error", err))
 		return ""
 	}
 	defer func() {
 		if err = resp.Body.Close(); err != nil {
-			log.Printf("unable to close response body: %v", err)
+			slog.Warn("unable to close response body", slog.Any("error", err))
 		}
 	}()
+
+	if resp.StatusCode != http.StatusOK {
+		slog.Warn("unable to fetch sentry DSN", "code", resp.StatusCode)
+		return ""
+	}
 
 	type response struct {
 		DSN string `json:"dsn"`
@@ -156,7 +163,7 @@ func fetchSentryDSN() string {
 	var result response
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
-		log.Printf("unable to decode sentry DSN response: %v", err)
+		slog.Warn("unable to decode sentry DSN response", slog.Any("error", err))
 		return ""
 	}
 
@@ -178,7 +185,7 @@ func isUpdateAvailable(c context.Context) bool {
 	}
 	defer func() {
 		if err = resp.Body.Close(); err != nil {
-			log.Printf("unable to close response body: %v", err)
+			slog.Warn(err.Error())
 		}
 	}()
 
@@ -215,7 +222,7 @@ func isUpdateAvailable(c context.Context) bool {
 
 	published, err := time.Parse(time.RFC3339, result.PublishedAt)
 	if err != nil {
-		log.Printf("unable to parse publish date: %v", err)
+		slog.Warn(err.Error())
 		return false
 	}
 

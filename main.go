@@ -15,6 +15,10 @@ var (
 )
 
 func main() {
+	if err := setup(); err != nil {
+		panic(err)
+	}
+
 	sentry.Start(version, fetchSentryDSN())
 	defer sentry.Flush(2 * time.Second)
 
@@ -35,6 +39,7 @@ func Run() {
 	defer close(done)
 
 	type task struct {
+		c   context.Context
 		job func(context.Context) error
 		f   func(context.Context, error) error
 	}
@@ -42,25 +47,24 @@ func Run() {
 	go func() {
 		for _, t := range []task{
 			{
-				job: setup,
-				f:   cleanup,
-			},
-			{
+				c:   sentry.NewContext(ctx, "java"),
 				job: checkJava,
 				f:   download,
 			},
 			{
+				c:   sentry.NewContext(ctx, "launcher"),
 				job: checkLauncher,
 				f:   download,
 			},
 			{
+				c:   sentry.NewContext(ctx, "start"),
 				job: startLauncher,
 				f:   cleanup,
 			},
 		} {
-			err := t.f(ctx, t.job(ctx))
+			err := t.f(t.c, t.job(t.c))
 			if err != nil {
-				_ = cleanup(ctx, err)
+				_ = cleanup(t.c, err)
 				break
 			}
 		}
