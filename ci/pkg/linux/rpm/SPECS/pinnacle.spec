@@ -8,7 +8,7 @@ Source0:        pinnacle-linux-amd64
 Source1:        %{name}.desktop
 Source2:        %{name}.png
 Source3:        LICENSE
-Requires:       xrandr xdg-desktop-portal zenity
+Requires:       tar xrandr xdg-desktop-portal zenity
 
 %description
 Alpine Client is an all-in-one modpack for Minecraft that offers a
