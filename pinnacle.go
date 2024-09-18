@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
@@ -8,8 +9,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/alpine-client/pinnacle/sentry"
@@ -52,12 +55,13 @@ func (p *Pinnacle) setup() error {
 		return err
 	}
 
-	logFile, err = os.OpenFile(p.alpinePath("logs/updater.log"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o666)
+	logFile, err = os.OpenFile(p.alpinePath("logs", "updater.log"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o666)
 	if err != nil {
 		return err
 	}
 
-	p.logger = slog.New(slog.NewTextHandler(io.MultiWriter(os.Stdout, logFile), nil))
+	p.logger = slog.New(slog.NewTextHandler(io.MultiWriter(os.Stdout, os.Stderr, logFile), nil))
+	log.SetOutput(io.MultiWriter(os.Stdout, os.Stderr, logFile))
 
 	// Setup Sentry
 	p.StartSentry(version, p.fetchSentryDSN())
@@ -273,13 +277,13 @@ func (p *Pinnacle) downloadJava(ctx context.Context) error {
 
 	_ = os.Chmod(p.alpinePath("jre", "17", "extracted", "bin", p.os.javaExecutable()), 0o755)
 
-	bytes, err := json.Marshal(JavaManifest{Hash: metadataResponse.Hash, Size: metadataResponse.Size})
+	data, err := json.Marshal(JavaManifest{Hash: metadataResponse.Hash, Size: metadataResponse.Size})
 	if err != nil {
 		return err
 	}
 
 	p.Breadcrumb(ctx, "writing manifest to file "+manifestPath)
-	err = os.WriteFile(manifestPath, bytes, 0o600)
+	err = os.WriteFile(manifestPath, data, 0o600)
 	if err != nil {
 		return err
 	}
@@ -295,6 +299,13 @@ func (p *Pinnacle) startLauncher(ctx context.Context) error {
 
 	jarPath := p.alpinePath("launcher.jar")
 	jrePath := p.alpinePath("jre", "17", "extracted", "bin", p.os.javaExecutable())
+
+	cmd := exec.Command("tree", "-n", "-h", "-u", "-p", "-D", p.alpinePath())
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	p.logger.Info(cmd.String())
+	cmd.Run()
+	log.Println(out.String())
 
 	args := []string{
 		"-Xms256M",

@@ -14,7 +14,7 @@ var version string
 func main() {
 	p := &Pinnacle{
 		os:      OperatingSystem(runtime.GOOS),
-		arch:    Architecture(runtime.GOARCH),
+		arch:    Architecture("arm64"),
 		version: version,
 	}
 
