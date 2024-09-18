@@ -73,7 +73,7 @@ func (p *Pinnacle) Run() {
 	}()
 
 	<-done
-	if logFile != nil {
-		p.CaptureErr(ctx, logFile.Close())
+	if p.logFile != nil {
+		p.CaptureErr(ctx, p.logFile.Close())
 	}
 }

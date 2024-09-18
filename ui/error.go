@@ -3,6 +3,9 @@ package ui
 import (
 	"context"
 	"errors"
+	"io"
+	"log"
+	"os"
 	"os/exec"
 	"runtime"
 	"time"
@@ -13,7 +16,7 @@ import (
 
 // DisplayError closes the progress-bar, sends the error to sentry and displays a pop-up for the user
 // Also adds a breadcrumb to the provided sentry hub connected to the context.
-func DisplayError(ctx context.Context, err error) error {
+func DisplayError(ctx context.Context, err error, logFile *os.File) error {
 	if err == nil {
 		return nil
 	}
@@ -22,7 +25,28 @@ func DisplayError(ctx context.Context, err error) error {
 
 	message := err.Error()
 
-	id := sentry.CaptureErr(ctx, err)
+	var logContent string
+	if logFile != nil {
+		logFile.Close()
+		log.Println("reading log file again at: " + logFile.Name())
+		logFileToRead, lerr := os.Open(logFile.Name())
+		if lerr != nil {
+			log.Printf("error opening log file %q: %v", logFile.Name(), lerr)
+		} else {
+			defer logFileToRead.Close()
+			logData, rerr := io.ReadAll(logFileToRead)
+			if rerr != nil {
+				log.Println(errors.Unwrap(rerr))
+			} else {
+				log.Println("attaching log file to sentry report")
+				logContent = string(logData)
+				log.Printf("length of log: %d\n", len(logContent))
+			}
+		}
+
+	}
+
+	id := sentry.CaptureErr(ctx, err, logContent)
 	if id != nil {
 		message += "\n\nCode: " + string(*id)
 	}

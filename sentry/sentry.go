@@ -80,12 +80,20 @@ func Breadcrumb(ctx context.Context, desc string, level slog.Level) {
 }
 
 // CaptureErr reports an error to Sentry.
-func CaptureErr(ctx context.Context, err error) *sentry.EventID {
+func CaptureErr(ctx context.Context, err error, attachment ...string) *sentry.EventID {
 	if err == nil || !enabled {
 		return nil
 	}
 	Breadcrumb(ctx, err.Error(), slog.LevelError)
 	if hub := sentry.GetHubFromContext(ctx); hub != nil {
+		if len(attachment) > 0 {
+			hub.ConfigureScope(func(scope *sentry.Scope) {
+				scope.AddAttachment(&sentry.Attachment{
+					Filename: "updater.log",
+					Payload:  []byte(attachment[0]),
+				})
+			})
+		}
 		return hub.CaptureException(err)
 	}
 	return nil

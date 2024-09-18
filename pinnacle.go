@@ -23,6 +23,7 @@ type Pinnacle struct {
 	os      OperatingSystem
 	arch    Architecture
 	logger  *slog.Logger
+	logFile *os.File
 	version string
 }
 
@@ -39,7 +40,6 @@ type JavaManifest struct {
 }
 
 var (
-	logFile          *os.File
 	metadataResponse MetadataResponse
 
 	errMissingJava     = errors.New("missing java")
@@ -55,13 +55,13 @@ func (p *Pinnacle) setup() error {
 		return err
 	}
 
-	logFile, err = os.OpenFile(p.alpinePath("logs", "updater.log"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o666)
+	p.logFile, err = os.OpenFile(p.alpinePath("logs", "updater.log"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o666)
 	if err != nil {
 		return err
 	}
 
-	p.logger = slog.New(slog.NewTextHandler(io.MultiWriter(os.Stdout, os.Stderr, logFile), nil))
-	log.SetOutput(io.MultiWriter(os.Stdout, os.Stderr, logFile))
+	p.logger = slog.New(slog.NewTextHandler(io.MultiWriter(os.Stdout, os.Stderr, p.logFile), nil))
+	log.SetOutput(io.MultiWriter(os.Stdout, os.Stderr, p.logFile))
 
 	// Setup Sentry
 	p.StartSentry(version, p.fetchSentryDSN())
@@ -74,7 +74,7 @@ func (p *Pinnacle) cleanup(ctx context.Context, err error) {
 		return
 	}
 	p.CaptureErr(ctx, err)
-	p.CaptureErr(ctx, ui.DisplayError(ctx, err))
+	p.CaptureErr(ctx, ui.DisplayError(ctx, err, p.logFile))
 	p.CaptureErr(ctx, os.RemoveAll(p.alpinePath("launcher.jar")))
 	p.CaptureErr(ctx, os.RemoveAll(p.alpinePath("jre", "17")))
 }
