@@ -2,7 +2,7 @@ Package: alpine-client
 Version: 1.0.0-1
 Section: games
 Priority: optional
-Depends: tar, x11-xserver-utils, xdg-desktop-portal, zenity
+Depends: tree, tar, x11-xserver-utils, xdg-desktop-portal, zenity
 Architecture: amd64
 Homepage: https://alpineclient.com/
 Maintainer: Crystal Development, LLC <contact@crystaldev.co>
