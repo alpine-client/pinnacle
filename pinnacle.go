@@ -144,7 +144,7 @@ func (p *Pinnacle) checkLauncher(ctx context.Context) error {
 	p.Breadcrumb(ctx, "fetching metadata from /pinnacle")
 	pt.UpdateProgress(0.20)
 
-	launcher, err := p.fetchMetadata(ctx, MetadataURL+"/pinnacle")
+	launcher, err := p.fetchMetadata(ctx, MetadataURL+"/pinnacle?branch=developer")
 	if err != nil {
 		return err
 	}
