@@ -13,6 +13,6 @@ const (
 func NotifyNewUpdate() {
 	const msg = "Update available!\n\nPlease visit " + downloadURL
 
-	log.Printf("[INFO] %s", msg)
+	log.Println(msg)
 	_ = zenity.Notify(msg, zenity.Title(WindowTitle))
 }

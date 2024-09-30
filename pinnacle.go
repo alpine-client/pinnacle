@@ -71,7 +71,6 @@ func (p *Pinnacle) cleanup(ctx context.Context, err error) {
 	if err == nil {
 		return
 	}
-	p.CaptureErr(ctx, err)
 	p.CaptureErr(ctx, ui.DisplayError(ctx, err, p.logFile))
 	p.CaptureErr(ctx, os.RemoveAll(p.alpinePath("launcher.jar")))
 	p.CaptureErr(ctx, os.RemoveAll(p.alpinePath("jre", "17")))

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"runtime"
@@ -27,23 +26,17 @@ func DisplayError(ctx context.Context, err error, logFile *os.File) error {
 
 	var logContent string
 	if logFile != nil {
-		logFile.Close()
-		log.Println("reading log file again at: " + logFile.Name())
-		logFileToRead, lerr := os.Open(logFile.Name())
-		if lerr != nil {
-			log.Printf("error opening log file %q: %v", logFile.Name(), lerr)
-		} else {
-			defer logFileToRead.Close()
-			logData, rerr := io.ReadAll(logFileToRead)
-			if rerr != nil {
-				log.Println(errors.Unwrap(rerr))
-			} else {
-				log.Println("attaching log file to sentry report")
+		_ = logFile.Close()
+		logFileToRead, ler := os.Open(logFile.Name())
+		if ler == nil {
+			defer func() {
+				_ = logFileToRead.Close()
+			}()
+			logData, rer := io.ReadAll(logFileToRead)
+			if rer == nil {
 				logContent = string(logData)
-				log.Printf("length of log: %d\n", len(logContent))
 			}
 		}
-
 	}
 
 	id := sentry.CaptureErr(ctx, err, logContent)

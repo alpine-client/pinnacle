@@ -68,7 +68,7 @@ func Render() {
 		zenity.Height(uint(WindowHeight)),
 	)
 	if err != nil {
-		log.Printf("[ERROR] failed to render progress bar: %v", err)
+		log.Printf("[ERROR] failed to render progress bar: %v\n", err)
 		dialog = nil
 	}
 }
