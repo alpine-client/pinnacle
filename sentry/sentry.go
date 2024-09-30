@@ -2,7 +2,8 @@ package sentry
 
 import (
 	"context"
-	"log"
+	"errors"
+	"log/slog"
 	"os"
 	"runtime"
 	"time"
@@ -12,14 +13,9 @@ import (
 
 var enabled bool
 
-const (
-	LevelError = sentry.LevelError
-)
-
-func Start(release string, dsn string) {
+func Start(release string, dsn string) error {
 	if dsn == "" {
-		log.Println("[WARN] missing sentry DSN")
-		return
+		return errors.New("missing sentry DSN")
 	}
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn:              dsn,
@@ -28,10 +24,10 @@ func Start(release string, dsn string) {
 		Transport:        sentry.NewHTTPSyncTransport(),
 	})
 	if err != nil {
-		log.Printf("[WARN] unable to start sentry: %v", err)
-		return
+		return err
 	}
 	enabled = true
+	return nil
 }
 
 func Flush(timeout time.Duration) {
@@ -57,17 +53,23 @@ func NewContext(parent context.Context, task string) context.Context {
 	return sentry.SetHubOnContext(ctx, localHub)
 }
 
-func Breadcrumb(ctx context.Context, desc string, level ...sentry.Level) {
-	var lvl sentry.Level
-	if len(level) == 0 {
-		lvl = sentry.LevelInfo
-	} else {
-		lvl = level[0]
-	}
-	log.Printf("%s %s", lvl, desc)
+func Breadcrumb(ctx context.Context, desc string, level slog.Level) {
 	if !enabled {
 		return
 	}
+
+	var lvl sentry.Level
+	switch level {
+	case slog.LevelDebug:
+		lvl = sentry.LevelDebug
+	case slog.LevelInfo:
+		lvl = sentry.LevelInfo
+	case slog.LevelWarn:
+		lvl = sentry.LevelWarning
+	case slog.LevelError:
+		lvl = sentry.LevelError
+	}
+
 	if hub := sentry.GetHubFromContext(ctx); hub != nil {
 		hub.AddBreadcrumb(&sentry.Breadcrumb{
 			Category: ctx.Value(contextKey("task")).(string),
@@ -77,17 +79,21 @@ func Breadcrumb(ctx context.Context, desc string, level ...sentry.Level) {
 	}
 }
 
-// CaptureErr reports an error to Sentry but does not exit the program.
-func CaptureErr(ctx context.Context, err error) *sentry.EventID {
-	if err == nil {
+// CaptureErr reports an error to Sentry.
+func CaptureErr(ctx context.Context, err error, attachment ...string) *sentry.EventID {
+	if err == nil || !enabled {
 		return nil
 	}
-	log.Printf("[ERROR] %v", err)
-	if !enabled {
-		return nil
-	}
-	Breadcrumb(ctx, err.Error(), sentry.LevelError)
+	Breadcrumb(ctx, err.Error(), slog.LevelError)
 	if hub := sentry.GetHubFromContext(ctx); hub != nil {
+		if len(attachment) > 0 {
+			hub.ConfigureScope(func(scope *sentry.Scope) {
+				scope.AddAttachment(&sentry.Attachment{
+					Filename: "updater.log",
+					Payload:  []byte(attachment[0]),
+				})
+			})
+		}
 		return hub.CaptureException(err)
 	}
 	return nil
