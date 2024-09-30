@@ -6,7 +6,7 @@ github.com/akavel/rsrc/ico
 # github.com/dchest/jsmin v0.0.0-20220218165748-59f39799265f
 ## explicit
 github.com/dchest/jsmin
-# github.com/getsentry/sentry-go v0.28.1
+# github.com/getsentry/sentry-go v0.29.0
 ## explicit; go 1.18
 github.com/getsentry/sentry-go
 github.com/getsentry/sentry-go/internal/debug
