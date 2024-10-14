@@ -428,6 +428,7 @@ jobs:
           # Create necessary folders
           mkdir "${APP}/MacOS"
           mkdir -p build/out/
+          mkdir {dmg_amd64,dmg_arm64}
 
           # Replace version in Info.plist file
           sed -i '' "s/<string>1.0.0<\/string>/<string>${VERSION}<\/string>/" "${APP}/Info.plist"
@@ -437,11 +438,15 @@ jobs:
 
           # Set permissions
           chmod +x "${APP}/MacOS/pinnacle-darwin-amd64"
+          
+          # Copy app contents to dmg folders
+          cp -R "ci/pkg/darwin/Alpine Client.app" dmg_amd64/
+          ln -s /Applications dmg_amd64/Applications
 
           # Export APP env for later
           echo "APP=${APP}" >> $GITHUB_ENV
 
-      - name: Package AMD64
+      - name: Package AMD64 PKG
         run: >-
           pkgbuild
           --root ci/pkg/darwin
@@ -450,14 +455,26 @@ jobs:
           --install-location /Applications
           "build/out/AlpineClientSetup-${VERSION}-x86_64.pkg"
 
+      - name: Package AMD64 DMG
+        run: >-
+          hdiutil create
+          -volname "Alpine Client"
+          -srcfolder dmg_amd64
+          -ov -format UDZO
+          "build/out/AlpineClient-${VERSION}-x86_64.dmg"
+
       - name: Swap AMD64 binary for ARM64
         run: |
+          # pkg
           rm -f "${APP}/MacOS/pinnacle-darwin-amd64"
           cp bin/pinnacle-darwin-arm64 "${APP}/MacOS/pinnacle-darwin-arm64"
           sed -i '' 's/amd64/arm64/g' "${APP}/Info.plist"
           chmod +x "${APP}/MacOS/pinnacle-darwin-arm64"
+          # dmg
+          cp -R "ci/pkg/darwin/Alpine Client.app" dmg_arm64/
+          ln -s /Applications dmg_arm64/Applications
 
-      - name: Package ARM64
+      - name: Package ARM64 PKG
         run: >-
           pkgbuild
           --root ci/pkg/darwin
@@ -465,6 +482,14 @@ jobs:
           --version "${VERSION}"
           --install-location /Applications
           "build/out/AlpineClientSetup-${VERSION}-ARM64.pkg"
+
+      - name: Package ARM64 DMG
+        run: |          
+          hdiutil create
+          -volname "Alpine Client"
+          -srcfolder dmg_arm64
+          -ov -format UDZO
+          "build/out/AlpineClient-${VERSION}-ARM64.dmg"
 
       - name: Upload artifact
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
