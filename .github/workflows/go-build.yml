@@ -482,7 +482,7 @@ jobs:
           "build/out/AlpineClientSetup-${VERSION}-ARM64.pkg"
 
       - name: Package ARM64 DMG
-        run: |          
+        run: >-          
           hdiutil create
           -volname "Alpine Client"
           -srcfolder dmg_arm64
