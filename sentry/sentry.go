@@ -71,11 +71,13 @@ func Breadcrumb(ctx context.Context, desc string, level slog.Level) {
 	}
 
 	if hub := sentry.GetHubFromContext(ctx); hub != nil {
-		hub.AddBreadcrumb(&sentry.Breadcrumb{
-			Category: ctx.Value(contextKey("task")).(string),
-			Message:  desc,
-			Level:    lvl,
-		}, nil)
+		if task, ok := ctx.Value(contextKey("task")).(string); ok {
+			hub.AddBreadcrumb(&sentry.Breadcrumb{
+				Category: task,
+				Message:  desc,
+				Level:    lvl,
+			}, nil)
+		}
 	}
 }
 
