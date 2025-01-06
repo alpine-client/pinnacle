@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -17,21 +16,7 @@ import (
 	"github.com/alpine-client/pinnacle/ui"
 )
 
-var httpClient = &http.Client{
-	Transport: &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		ForceAttemptHTTP2:     false,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		ResponseHeaderTimeout: 15 * time.Second,
-	},
-}
+var httpClient = &http.Client{}
 
 func (p *Pinnacle) getFromURL(ctx context.Context, url string) (*http.Response, error) {
 	const maxAttempts = 4
