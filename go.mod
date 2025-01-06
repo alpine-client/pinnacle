@@ -3,7 +3,7 @@ module github.com/alpine-client/pinnacle
 go 1.23.4
 
 require (
-	github.com/getsentry/sentry-go v0.30.0
+	github.com/getsentry/sentry-go v0.31.1
 	github.com/ncruces/zenity v0.10.14
 )
 
@@ -15,6 +15,6 @@ require (
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
 	golang.org/x/image v0.23.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 )
