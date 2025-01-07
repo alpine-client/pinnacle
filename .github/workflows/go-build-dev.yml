@@ -455,7 +455,7 @@ jobs:
           
           APP="${AMD64_DIR}/Alpine Client.app/Contents"
           mkdir -p "${APP}/MacOS"
-          sed -i '' "s/<string>1.0.0<\/string>/<string>${VERSION}<\/string>/" "${APP}/Info.plist"
+          sed -i '' "s/<string>1.0.0<\/string>/<string>${{ env.VERSION }}<\/string>/" "${APP}/Info.plist"
           cp bin/pinnacle-darwin-amd64 "${APP}/MacOS/pinnacle-darwin-amd64"
           chmod +x "${APP}/MacOS/pinnacle-darwin-amd64"
           
@@ -485,14 +485,14 @@ jobs:
           pkgbuild
           --root "${{ env.AMD64_DIR }}"
           --identifier com.alpineclient.pinnacle
-          --version "${VERSION}"
+          --version "${{ env.VERSION }}"
           --install-location /Applications
-          "build/out/AlpineClientSetup-${VERSION}-x86_64.pkg"
+          "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
 
       - name: Sign and Notarize AMD64 Package
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
-          input_path: "build/out/AlpineClientSetup-${VERSION}-x86_64.pkg"
+          input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
           p12_file: installer_cert.p12
           p12_password: ${{ secrets.APPLE_CERT_PASSWORD }}
           sign: true
@@ -509,7 +509,7 @@ jobs:
           
           APP="${ARM64_DIR}/Alpine Client.app/Contents"
           mkdir -p "${APP}/MacOS"
-          sed -i '' "s/<string>1.0.0<\/string>/<string>${VERSION}<\/string>/" "${APP}/Info.plist"
+          sed -i '' "s/<string>1.0.0<\/string>/<string>${{ env.VERSION }}<\/string>/" "${APP}/Info.plist"
           sed -i '' 's/amd64/arm64/g' "${APP}/Info.plist"
           cp bin/pinnacle-darwin-arm64 "${APP}/MacOS/pinnacle-darwin-arm64"
           chmod +x "${APP}/MacOS/pinnacle-darwin-arm64"
@@ -540,14 +540,14 @@ jobs:
           pkgbuild
           --root "${{ env.ARM64_DIR }}"
           --identifier com.alpineclient.pinnacle
-          --version "${VERSION}"
+          --version "${{ env.VERSION }}"
           --install-location /Applications
-          "build/out/AlpineClientSetup-${VERSION}-ARM64.pkg"
+          "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
 
       - name: Sign and Notarize ARM64 Package
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
-          input_path: "build/out/AlpineClientSetup-${VERSION}-ARM64.pkg"
+          input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
           p12_file: installer_cert.p12
           p12_password: ${{ secrets.APPLE_CERT_PASSWORD }}
           sign: true
