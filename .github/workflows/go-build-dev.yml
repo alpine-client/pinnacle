@@ -489,7 +489,7 @@ jobs:
           --install-location /Applications
           "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
 
-      - name: Sign and Notarize AMD64 Package
+      - name: Sign AMD64 Package
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
@@ -497,6 +497,12 @@ jobs:
           p12_password: ${{ secrets.APPLE_CERT_PASSWORD }}
           sign: true
           sign_args: "--code-signature-flags=runtime"
+
+      - name: Notarize Signed AMD64 Package
+        uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
+        with:
+          input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
+          sign: false
           notarize: true
           staple: true
           app_store_connect_api_key_json_file: app_store_connect_key.json
@@ -544,16 +550,22 @@ jobs:
           --install-location /Applications
           "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
 
-      - name: Sign and Notarize ARM64 Package
+      - name: Sign ARM64 Package
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
           p12_file: installer_cert.p12
           p12_password: ${{ secrets.APPLE_CERT_PASSWORD }}
           sign: true
+          sign_args: "--code-signature-flags=runtime"
+
+      - name: Notarize Signed ARM64 Package
+        uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
+        with:
+          input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
+          sign: false
           notarize: true
           staple: true
-          sign_args: "--code-signature-flags=runtime"
           app_store_connect_api_key_json_file: app_store_connect_key.json
 
       - name: Upload artifact
