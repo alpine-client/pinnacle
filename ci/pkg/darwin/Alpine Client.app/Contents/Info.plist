@@ -2,18 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key>
+    <key>CFBundleDisplayName</key>
     <string>Alpine Client</string>
-    <key>CFBundleVersion</key>
-    <string>1.0.0</string>
     <key>CFBundleExecutable</key>
     <string>pinnacle-darwin-amd64</string>
     <key>CFBundleIconFile</key>
     <string>alpine-client.icns</string>
     <key>CFBundleIdentifier</key>
     <string>com.alpineclient.pinnacle</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>Alpine Client</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
     <key>LSMinimumSystemVersion</key>
     <string>10.15</string>
     <key>NSHighResolutionCapable</key>
@@ -23,6 +29,6 @@
     <key>NSRequiresAquaSystemAppearance</key>
     <string>false</string>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2024 Crystal Development, LLC All rights reserved.</string>
+    <string>Copyright © 2025 Crystal Development, LLC All rights reserved.</string>
 </dict>
 </plist>
