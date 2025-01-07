@@ -439,6 +439,9 @@ jobs:
           echo "$APPLICATION_CERT_P12" | base64 -d -o application_cert.p12
           echo "$INSTALLER_CERT_P12" | base64 -d -o installer_cert.p12
 
+      - name: Create output directory
+        run: mkdir -p build/out
+
       - name: Write App Store Connect API key
         env:
           APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
