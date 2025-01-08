@@ -50,7 +50,7 @@ func (p *Pinnacle) setup() error {
 	var err error
 
 	// Set Launcher Branch
-	branch := flag.String("branch", "production", "Launcher branch")
+	branch := flag.String("branch", "llvm", "Launcher branch")
 	flag.Parse()
 	p.branch = *branch
 
