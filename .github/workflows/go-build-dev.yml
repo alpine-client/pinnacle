@@ -503,7 +503,7 @@ jobs:
         with:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
           sign: false
-          notarize: true
+          notarize: false # // TODO
           staple: false # // TODO
           app_store_connect_api_key_json_file: app_store_connect_key.json
 
@@ -564,7 +564,7 @@ jobs:
         with:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
           sign: false
-          notarize: true
+          notarize: false # // TODO
           staple: false # // TODO
           app_store_connect_api_key_json_file: app_store_connect_key.json
 
