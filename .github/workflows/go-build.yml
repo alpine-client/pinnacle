@@ -356,6 +356,7 @@ jobs:
           "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
 
       - name: Package AMD64 AppImage
+        continue-on-error: true
         run: >-
           ./appimagetool-x86_64.AppImage ~/appbuild/AlpineClient.AppDir
           "build/out/Alpine_Client-${VERSION}-x86_64.AppImage"
