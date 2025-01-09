@@ -192,8 +192,8 @@ func (p *Pinnacle) isUpdateAvailable(c context.Context) bool {
 
 	type details struct {
 		TagName     string `json:"tag_name"`
-		PreRelease  bool   `json:"prerelease"`
 		PublishedAt string `json:"published_at"`
+		PreRelease  bool   `json:"prerelease"`
 	}
 
 	var result details

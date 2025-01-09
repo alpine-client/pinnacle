@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -23,6 +24,7 @@ type Pinnacle struct {
 	logger  *slog.Logger
 	logFile *os.File
 	version string
+	branch  string
 }
 
 type MetadataResponse struct {
@@ -46,6 +48,11 @@ var (
 
 func (p *Pinnacle) setup() error {
 	var err error
+
+	// Set Launcher Branch
+	branch := flag.String("branch", "production", "Launcher branch")
+	flag.Parse()
+	p.branch = *branch
 
 	// Setup Logger
 	err = os.MkdirAll(p.alpinePath("logs"), os.ModePerm) // note: creates .alpineclient AND .alpineclient/logs
@@ -141,7 +148,7 @@ func (p *Pinnacle) checkLauncher(ctx context.Context) error {
 	p.Breadcrumb(ctx, "fetching metadata from /pinnacle")
 	pt.UpdateProgress(0.20)
 
-	launcher, err := p.fetchMetadata(ctx, MetadataURL+"/pinnacle")
+	launcher, err := p.fetchMetadata(ctx, MetadataURL+"/pinnacle?branch="+p.branch)
 	if err != nil {
 		return err
 	}

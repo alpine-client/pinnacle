@@ -10,7 +10,7 @@ We aim to support all 64-bit versions of any x86 or ARM major desktop operating 
 - Windows:
   - x86: Windows 10 or later
 - macOS:
-  - x86: Sierra or later
+  - x86: Catalina or later
   - ARM: Big Sur or later
 - Linux:
   - Due to the nature of Linux we cannot personally verify compatibility with every distribution

@@ -1,9 +1,19 @@
+# Inspired by https://github.com/gofiber/fiber/blob/7b3a36f22fc1166ceb9cb78cf69b3a2f95d077da/Makefile
+.PHONY: help all align audit build clean format lint run tidy up
+
 version=$(shell cat VERSION 2>/dev/null)
 
-.PHONY: all audit build clean lint run tidy
+help:
+	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
 
-all: audit lint build
+## all: 🚀 Run pre-commit tasks
+all: audit align tidy format lint build
 
+## align: 📏 Optimize struct fields
+align:
+	go run github.com/dkorunic/betteralign/cmd/betteralign@v0.6.0 -apply ./...
+
+## audit: 🚀 Conduct quality checks
 audit:
 	go mod verify
 	go vet ./...
@@ -15,15 +25,26 @@ build: clean
 		-ldflags="-s -w -X main.version=${version}" \
 		-o bin/pinnacle-${version}.bin .
 
+## clean: 🧹 Remove artifacts
 clean:
 	rm -rf ./bin
 
-lint: tidy
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0 run ./...
+## format: 🎨 Fix code formatting
+format:
+	go run mvdan.cc/gofumpt@v0.7.0 -w -l .
 
+## lint: 🚨 Run lint checks
+lint:
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2 run ./...
+
+## run: ⚙️ Build and run app
 run: build
 	./bin/pinnacle-${version}.bin
 
+## tidy: 📌 Clean dependencies
 tidy:
 	go mod tidy -v
-	go run mvdan.cc/gofumpt@v0.7.0 -w -l .
+
+## up: 🔺 Update dependencies
+up:
+	go get -u ./...

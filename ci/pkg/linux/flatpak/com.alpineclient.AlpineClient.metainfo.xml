@@ -8,6 +8,7 @@
     <url type="homepage">https://alpineclient.com/</url>
     <url type="faq">https://alpineclient.com/#faq</url>
     <url type="help">https://discord.alpineclient.com/</url>
+    <url type="translate">https://translate.alpineclient.com</url>
 
     <developer id="co.crystaldev">
         <name>Crystal Development, LLC</name>
@@ -73,6 +74,9 @@
     </content_rating>
 
     <releases>
+        <release version="1.8.4" date="2024-09-30">
+            <url>https://alpineclient.com/news</url>
+        </release>
         <release version="1.8.3" date="2024-09-30">
             <url>https://alpineclient.com/news</url>
         </release>
