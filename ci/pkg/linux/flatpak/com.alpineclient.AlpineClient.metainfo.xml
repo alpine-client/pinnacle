@@ -74,6 +74,9 @@
     </content_rating>
 
     <releases>
+        <release version="1.8.4" date="2024-09-30">
+            <url>https://alpineclient.com/news</url>
+        </release>
         <release version="1.8.3" date="2024-09-30">
             <url>https://alpineclient.com/news</url>
         </release>
