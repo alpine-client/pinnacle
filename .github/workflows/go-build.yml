@@ -1,12 +1,22 @@
 name: Build and Package
 
 on:
-  push:
-    branches:
-      - 'master'
-      - 'test/**'
-    paths:
-      - 'VERSION'
+  workflow_dispatch: # manually triggered
+    inputs:
+      platform:
+        description: 'OS to build (if not publishing)'
+        required: false
+        default: 'windows'
+        type: choice
+        options:
+          - 'windows'
+          - 'linux'
+          - 'macos'
+      publish:
+        description: 'Publish a new release (all platforms)'
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -21,6 +31,7 @@ env:
 
 jobs:
   build_windows:
+    if: inputs.publish || inputs.platform == 'windows'
     name: "Build Windows"
     runs-on: windows-latest
 
@@ -97,6 +108,7 @@ jobs:
           if-no-files-found: error
 
   build_linux:
+    if: inputs.publish || inputs.platform == 'linux'
     name: "Build Linux"
     runs-on: ubuntu-latest
 
@@ -146,6 +158,7 @@ jobs:
           if-no-files-found: error
 
   build_macos:
+    if: inputs.publish || inputs.platform == 'macos'
     name: "Build MacOS"
     runs-on: macos-latest
 
@@ -191,9 +204,9 @@ jobs:
           if-no-files-found: error
 
   package_windows:
+    needs: [ build_windows ]
     name: "Package Windows"
     runs-on: windows-latest
-    needs: [ build_windows ]
 
     steps:
       - name: Checkout .iss files
@@ -262,9 +275,9 @@ jobs:
           if-no-files-found: error
 
   package_linux:
+    needs: [ build_linux ]
     name: "Package Linux"
     runs-on: ubuntu-latest
-    needs: [ build_linux ]
 
     steps:
       - name: Checkout ci/pkg files
@@ -398,9 +411,9 @@ jobs:
           if-no-files-found: error
 
   package_macos:
+    needs: [ build_macos ]
     name: "Package MacOS"
     runs-on: macos-latest
-    needs: [ build_macos ]
 
     steps:
       - name: Checkout ci/pkg/darwin
@@ -420,51 +433,146 @@ jobs:
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Set up environment
+      - name: Write signing keys
+        env:
+          APPLICATION_CERT_P12: ${{ secrets.APPLE_BINARY_CERT_DATA }}
+          INSTALLER_CERT_P12: ${{ secrets.APPLE_CERT_DATA }}
         run: |
-          # Set env variables for paths
-          APP="ci/pkg/darwin/Alpine Client.app/Contents"
+          echo "$APPLICATION_CERT_P12" | base64 -d -o application_cert.p12
+          echo "$INSTALLER_CERT_P12" | base64 -d -o installer_cert.p12
 
-          # Create necessary folders
-          mkdir "${APP}/MacOS"
-          mkdir -p build/out/
+      - name: Create output directory
+        run: mkdir -p build/out
 
-          # Replace version in Info.plist file
-          sed -i '' "s/<string>1.0.0<\/string>/<string>${VERSION}<\/string>/" "${APP}/Info.plist"
+      - name: Write App Store Connect API key
+        env:
+          APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
+        run: echo "$APP_STORE_CONNECT_KEY" > app_store_connect_key.json
+
+      - name: Set up AMD64 environment
+        run: |
+          set -euo pipefail
+
+          AMD64_DIR="ci/pkg/darwin/x86_64"
+          mkdir -p "${AMD64_DIR}"
+          cp -r "ci/pkg/darwin/Alpine Client.app" "${AMD64_DIR}/"
           
-          # Move compiled binary
+          APP="${AMD64_DIR}/Alpine Client.app/Contents"
+          mkdir -p "${APP}/MacOS"
+          sed -i '' "s/<string>1.0.0<\/string>/<string>${{ env.VERSION }}<\/string>/" "${APP}/Info.plist"
           cp bin/pinnacle-darwin-amd64 "${APP}/MacOS/pinnacle-darwin-amd64"
-
-          # Set permissions
           chmod +x "${APP}/MacOS/pinnacle-darwin-amd64"
+          
+          echo "AMD64_APP=${APP}" >> $GITHUB_ENV
+          echo "AMD64_DIR=${AMD64_DIR}" >> $GITHUB_ENV
 
-          # Export APP env for later
-          echo "APP=${APP}" >> $GITHUB_ENV
+      - name: Sign AMD64 Binary
+        uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
+        with:
+          input_path: "${{ env.AMD64_APP }}/MacOS/pinnacle-darwin-amd64"
+          p12_file: application_cert.p12
+          p12_password: ${{ secrets.APPLE_BINARY_CERT_PASSWORD }}
+          sign: true
+          sign_args: "--code-signature-flags=runtime"
+
+      - name: Sign AMD64 App Bundle
+        uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
+        with:
+          input_path: "${{ env.AMD64_DIR }}/Alpine Client.app"
+          p12_file: application_cert.p12
+          p12_password: ${{ secrets.APPLE_BINARY_CERT_PASSWORD }}
+          sign: true
+          sign_args: "--code-signature-flags=runtime"
 
       - name: Package AMD64
         run: >-
           pkgbuild
-          --root ci/pkg/darwin
+          --root "${{ env.AMD64_DIR }}"
           --identifier com.alpineclient.pinnacle
-          --version "${VERSION}"
+          --version "${{ env.VERSION }}"
           --install-location /Applications
-          "build/out/AlpineClientSetup-${VERSION}-x86_64.pkg"
+          "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
 
-      - name: Swap AMD64 binary for ARM64
+      - name: Sign AMD64 Package
+        uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
+        with:
+          input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
+          p12_file: installer_cert.p12
+          p12_password: ${{ secrets.APPLE_CERT_PASSWORD }}
+          sign: true
+          sign_args: "--code-signature-flags=runtime"
+
+      - name: Notarize Signed AMD64 Package
+        uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
+        with:
+          input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
+          sign: false
+          notarize: true
+          staple: true
+          app_store_connect_api_key_json_file: app_store_connect_key.json
+
+      - name: Set up ARM64 environment
         run: |
-          rm -f "${APP}/MacOS/pinnacle-darwin-amd64"
-          cp bin/pinnacle-darwin-arm64 "${APP}/MacOS/pinnacle-darwin-arm64"
+          set -euo pipefail
+
+          ARM64_DIR="ci/pkg/darwin/arm64"
+          mkdir -p "${ARM64_DIR}"
+          cp -r "ci/pkg/darwin/Alpine Client.app" "${ARM64_DIR}/"
+          
+          APP="${ARM64_DIR}/Alpine Client.app/Contents"
+          mkdir -p "${APP}/MacOS"
+          sed -i '' "s/<string>1.0.0<\/string>/<string>${{ env.VERSION }}<\/string>/" "${APP}/Info.plist"
           sed -i '' 's/amd64/arm64/g' "${APP}/Info.plist"
+          cp bin/pinnacle-darwin-arm64 "${APP}/MacOS/pinnacle-darwin-arm64"
           chmod +x "${APP}/MacOS/pinnacle-darwin-arm64"
+          
+          echo "ARM64_APP=${APP}" >> $GITHUB_ENV
+          echo "ARM64_DIR=${ARM64_DIR}" >> $GITHUB_ENV
+
+      - name: Sign ARM64 Binary
+        uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
+        with:
+          input_path: "${{ env.ARM64_APP }}/MacOS/pinnacle-darwin-arm64"
+          p12_file: application_cert.p12
+          p12_password: ${{ secrets.APPLE_BINARY_CERT_PASSWORD }}
+          sign: true
+          sign_args: "--code-signature-flags=runtime"
+
+      - name: Sign ARM64 App Bundle
+        uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
+        with:
+          input_path: "${{ env.ARM64_DIR }}/Alpine Client.app"
+          p12_file: application_cert.p12
+          p12_password: ${{ secrets.APPLE_BINARY_CERT_PASSWORD }}
+          sign: true
+          sign_args: "--code-signature-flags=runtime"
 
       - name: Package ARM64
         run: >-
           pkgbuild
-          --root ci/pkg/darwin
+          --root "${{ env.ARM64_DIR }}"
           --identifier com.alpineclient.pinnacle
-          --version "${VERSION}"
+          --version "${{ env.VERSION }}"
           --install-location /Applications
-          "build/out/AlpineClientSetup-${VERSION}-ARM64.pkg"
+          "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
+
+      - name: Sign ARM64 Package
+        uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
+        with:
+          input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
+          p12_file: installer_cert.p12
+          p12_password: ${{ secrets.APPLE_CERT_PASSWORD }}
+          sign: true
+          sign_args: "--code-signature-flags=runtime"
+
+      - name: Notarize Signed ARM64 Package
+        uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
+        with:
+          input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
+          sign: false
+          notarize: true
+          staple: true
+          app_store_connect_api_key_json_file: app_store_connect_key.json
 
       - name: Upload artifact
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
@@ -475,9 +583,9 @@ jobs:
           if-no-files-found: error
 
   create_github_release:
+    needs: [ package_windows, package_linux, package_macos ]
     name: "Create GitHub Release"
     runs-on: ubuntu-latest
-    needs: [ package_windows, package_linux, package_macos ]
 
     steps:
       - name: Checkout version file
@@ -519,7 +627,7 @@ jobs:
           if-no-files-found: error
 
       - name: Create release
-        if: github.ref == 'refs/heads/master'
+        if: inputs.publish && github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@7b4da11513bf3f43f9999e90eabced41ab8bb048 # v2.2.0
         with:
           tag_name: ${{ env.VERSION }}
@@ -533,11 +641,10 @@ jobs:
           draft: false
 
   publish_aur_package:
+    needs: [ create_github_release ]
+    if: inputs.publish && github.ref == 'refs/heads/master'
     name: "Publish AUR Package"
     runs-on: ubuntu-latest
-    needs: [ create_github_release ]
-
-    if: github.ref == 'refs/heads/master'
 
     steps:
       - name: Checkout ci/pkg/linux/arch
@@ -553,6 +660,8 @@ jobs:
 
       - name: Generate tarball checksum
         run: |
+          set -euo pipefail
+
           src_url="${{ github.server_url }}/${{ github.repository }}/archive/${VERSION}.tar.gz"
           checksum=$(curl -sL ${src_url} | shasum -a 256 | cut -d " " -f 1)
           if [ -z "$checksum" ]; then
@@ -578,11 +687,10 @@ jobs:
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
 
   create_sentry_release:
+    needs: [ create_github_release ]
+    if: inputs.publish && github.ref == 'refs/heads/master'
     name: "Create Sentry Release"
     runs-on: ubuntu-latest
-    needs: [ create_github_release ]
-
-    if: github.ref == 'refs/heads/master'
 
     steps:
       - name: Checkout code
