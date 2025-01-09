@@ -451,6 +451,8 @@ jobs:
 
       - name: Set up AMD64 environment
         run: |
+          set -euo pipefail
+
           AMD64_DIR="ci/pkg/darwin/x86_64"
           mkdir -p "${AMD64_DIR}"
           cp -r "ci/pkg/darwin/Alpine Client.app" "${AMD64_DIR}/"
@@ -511,6 +513,8 @@ jobs:
 
       - name: Set up ARM64 environment
         run: |
+          set -euo pipefail
+
           ARM64_DIR="ci/pkg/darwin/arm64"
           mkdir -p "${ARM64_DIR}"
           cp -r "ci/pkg/darwin/Alpine Client.app" "${ARM64_DIR}/"
@@ -656,6 +660,8 @@ jobs:
 
       - name: Generate tarball checksum
         run: |
+          set -euo pipefail
+
           src_url="${{ github.server_url }}/${{ github.repository }}/archive/${VERSION}.tar.gz"
           checksum=$(curl -sL ${src_url} | shasum -a 256 | cut -d " " -f 1)
           if [ -z "$checksum" ]; then
