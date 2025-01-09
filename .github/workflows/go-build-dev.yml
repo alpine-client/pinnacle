@@ -504,7 +504,7 @@ jobs:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
           sign: false
           notarize: true
-          staple: false # // TODO
+          staple: true
           app_store_connect_api_key_json_file: app_store_connect_key.json
 
       - name: Set up ARM64 environment
@@ -565,7 +565,7 @@ jobs:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
           sign: false
           notarize: true
-          staple: false # // TODO
+          staple: true
           app_store_connect_api_key_json_file: app_store_connect_key.json
 
       - name: Upload artifact
