@@ -1,4 +1,4 @@
-name: Build and Package
+name: "Build and Package"
 
 on:
   workflow_dispatch: # manually triggered
@@ -36,23 +36,25 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout code
+      - name: "Checkout code"
+        # https://github.com/actions/checkout/releases
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Set up Go
+      - name: "Set up Go"
+        # https://github.com/WillAbides/setup-go-faster/releases
         uses: WillAbides/setup-go-faster@a0ff5217a7d2567ed6ff1aa2b7d8f9d58173b2c9 # v1.14.0
         with:
           go-version-file: 'go.mod'
 
-      - name: Read version
+      - name: "Read version"
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Copy syso files
+      - name: "Copy syso files"
         run: |
           cp -r ci/pkg/windows/syso/* .
 
-      - name: Build AMD64
+      - name: "Build AMD64"
         run: >-
           env
           GOARCH=amd64
@@ -62,7 +64,7 @@ jobs:
           -o bin/pinnacle-windows-amd64.exe
           .
 
-      - name: Build ARM64
+      - name: "Build ARM64"
         run: >-
           env
           GOARCH=arm64
@@ -72,35 +74,38 @@ jobs:
           -o bin/pinnacle-windows-arm64.exe
           .
 
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f # v2.1.7
+      - name: "Authenticate with Google Cloud"
+        # https://github.com/google-github-actions/auth/releases
+        uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@6189d56e4096ee891640bb02ac264be376592d6a # v2.1.2
+      - name: "Set up Google Cloud SDK"
+        # https://github.com/google-github-actions/setup-gcloud/releases
+        uses: google-github-actions/setup-gcloud@77e7a554d41e2ee56fc945c52dfd3f33d12def9a # v2.1.4
 
-      - name: Download jsign
+      - name: "Download jsign"
         run: ./ci/scripts/download-jsign.sh
 
-      - name: Decode certificate
+      - name: "Decode certificate"
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign AMD64
+      - name: "Sign AMD64"
         env:
           GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
           GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
         run: ./ci/scripts/sign.sh "bin/pinnacle-windows-amd64.exe"
 
-      - name: Sign ARM64
+      - name: "Sign ARM64"
         env:
           GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
           GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
         run: ./ci/scripts/sign.sh "bin/pinnacle-windows-arm64.exe"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      - name: "Upload artifact"
+        # https://github.com/actions/upload-artifact/releases
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: windows-binaries
           path: bin
@@ -113,23 +118,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: "Checkout code"
+        # https://github.com/actions/checkout/releases
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Install dependencies
+      - name: "Install dependencies"
         run: >-
           sudo apt-get update
 
-      - name: Set up Go
+      - name: "Set up Go"
+        # https://github.com/WillAbides/setup-go-faster/releases
         uses: WillAbides/setup-go-faster@a0ff5217a7d2567ed6ff1aa2b7d8f9d58173b2c9 # v1.14.0
         with:
           go-version-file: 'go.mod'
 
-      - name: Read version
+      - name: "Read version"
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Build AMD64
+      - name: "Build AMD64"
         run: >-
           env
           GOARCH=amd64
@@ -139,7 +146,7 @@ jobs:
           -o bin/pinnacle-linux-amd64
           .
 
-      - name: Build ARM64
+      - name: "Build ARM64"
         run: >-
           env
           GOARCH=arm64
@@ -149,8 +156,9 @@ jobs:
           -o bin/pinnacle-linux-arm64
           .
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      - name: "Upload artifact"
+        # https://github.com/actions/upload-artifact/releases
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: linux-binaries
           path: bin
@@ -163,19 +171,21 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout code
+      - name: "Checkout code"
+        # https://github.com/actions/checkout/releases
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Set up Go
+      - name: "Set up Go"
+        # https://github.com/WillAbides/setup-go-faster/releases
         uses: WillAbides/setup-go-faster@a0ff5217a7d2567ed6ff1aa2b7d8f9d58173b2c9 # v1.14.0
         with:
           go-version-file: 'go.mod'
 
-      - name: Read version
+      - name: "Read version"
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Build AMD64
+      - name: "Build AMD64"
         run: >-
           env
           GOARCH=amd64
@@ -185,7 +195,7 @@ jobs:
           -o bin/pinnacle-darwin-amd64
           .
 
-      - name: Build ARM64
+      - name: "Build ARM64"
         run: >-
           env
           GOARCH=arm64
@@ -195,8 +205,9 @@ jobs:
           -o bin/pinnacle-darwin-arm64
           .
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      - name: "Upload artifact"
+        # https://github.com/actions/upload-artifact/releases
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: macos-binaries
           path: bin
@@ -209,7 +220,8 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout .iss files
+      - name: "Checkout .iss files"
+        # https://github.com/actions/checkout/releases
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           sparse-checkout: |
@@ -217,57 +229,61 @@ jobs:
             ci/scripts
             VERSION
 
-      - name: Download binaries
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      - name: "Download binaries"
+        # https://github.com/actions/download-artifact/releases
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: windows-binaries
           path: bin
 
-      - name: Read version
+      - name: "Read version"
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Package AMD64 with InnoSetup
+      - name: "Package AMD64 with InnoSetup"
         run: |
           AMD_ISS=ci/pkg/windows/iss/PackagePinnacle-amd64.iss
           sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$AMD_ISS"
           iscc.exe "$AMD_ISS"
 
-      - name: Package ARM64 with InnoSetup
+      - name: "Package ARM64 with InnoSetup"
         run: |
           ARM_ISS=ci/pkg/windows/iss/PackagePinnacle-arm64.iss
           sed -i "s/#define MyAppVersion \"1.0.0\"/#define MyAppVersion \"${VERSION}\"/" "$ARM_ISS"
           iscc.exe "$ARM_ISS"
 
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f # v2.1.7
+      - name: "Authenticate with Google Cloud"
+        # https://github.com/google-github-actions/auth/releases
+        uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@6189d56e4096ee891640bb02ac264be376592d6a # v2.1.2
+      - name: "Set up Google Cloud SDK"
+        # https://github.com/google-github-actions/setup-gcloud/releases
+        uses: google-github-actions/setup-gcloud@77e7a554d41e2ee56fc945c52dfd3f33d12def9a # v2.1.4
 
-      - name: Download jsign
+      - name: "Download jsign"
         run: ./ci/scripts/download-jsign.sh
 
-      - name: Decode certificate
+      - name: "Decode certificate"
         run: |
           echo "${{ secrets.CERTFILE_BASE64 }}" | base64 --decode > pinnacle-certificate.pem
 
-      - name: Sign AMD64
+      - name: "Sign AMD64"
         env:
           GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
           GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
         run: ./ci/scripts/sign.sh "build/out/AlpineClientSetup-${VERSION}-x86_64.exe"
 
-      - name: Sign ARM64
+      - name: "Sign ARM64"
         env:
           GCP_KEYSTORE: ${{ secrets.GCP_KEYSTORE }}
           GCP_KEY_ALIAS: ${{ secrets.GCP_KEY_ALIAS }}
         run: ./ci/scripts/sign.sh "build/out/AlpineClientSetup-${VERSION}-ARM64.exe"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      - name: "Upload artifact"
+        # https://github.com/actions/upload-artifact/releases
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: windows-installers
           path: build/out
@@ -280,7 +296,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout ci/pkg files
+      - name: "Checkout ci/pkg files"
+        # https://github.com/actions/checkout/releases
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           sparse-checkout: |
@@ -288,13 +305,14 @@ jobs:
             ci/scripts
             VERSION
 
-      - name: Download binaries
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      - name: "Download binaries"
+        # https://github.com/actions/download-artifact/releases
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: linux-binaries
           path: bin
 
-      - name: Install dependencies
+      - name: "Install dependencies"
         run: >-
           sudo apt-get update &&
           sudo apt-get install -y
@@ -304,14 +322,14 @@ jobs:
           dpkg-dev
           libfuse2
 
-      - name: Read version
+      - name: "Read version"
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Download AppImageTool
+      - name: "Download AppImageTool"
         run: ./ci/scripts/download-appimagetool.sh
 
-      - name: Prepare for packaging
+      - name: "Prepare for packaging"
         run: |
           # Edit version in spec/control files
           sed -i "s/^Version:.*/Version: ${VERSION}/" ci/pkg/linux/rpm/SPECS/pinnacle.spec
@@ -342,26 +360,26 @@ jobs:
           # Create output folder
           mkdir -p build/out
 
-      - name: Package AMD64 RPM
+      - name: "Package AMD64 RPM"
         run: >-
           rpmbuild -bb
           ~/rpmbuild/SPECS/pinnacle.spec
           --define "_rpmdir build/out"
           --target=x86_64
 
-      - name: Package AMD64 DEB
+      - name: "Package AMD64 DEB"
         run: >-
           dpkg-deb -Zgzip
           --build ~/debbuild/alpine-client
           "build/out/alpine-client_${VERSION}-${RELEASE}_amd64.deb"
 
-      - name: Package AMD64 AppImage
+      - name: "Package AMD64 AppImage"
         continue-on-error: true
         run: >-
           ./appimagetool-x86_64.AppImage ~/appbuild/AlpineClient.AppDir
           "build/out/Alpine_Client-${VERSION}-x86_64.AppImage"
 
-      - name: Swap AMD64 binary for ARM64
+      - name: "Swap AMD64 binary for ARM64"
         run: |
           # Remove amd64 binaries
           rm -f ~/rpmbuild/SOURCES/pinnacle-darwin-amd64
@@ -379,20 +397,20 @@ jobs:
           chmod +x ~/rpmbuild/SOURCES/pinnacle-linux-arm64
           chmod +x ~/debbuild/alpine-client/usr/bin/alpine-client
 
-      - name: Package ARM64 RPM
+      - name: "Package ARM64 RPM"
         run: >-
           rpmbuild -bb
           ~/rpmbuild/SPECS/pinnacle.spec
           --define "_rpmdir build/out"
           --target=aarch64
 
-      - name: Package ARM64 DEB
+      - name: "Package ARM64 DEB"
         run: >-
           dpkg-deb -Zgzip
           --build ~/debbuild/alpine-client
           "build/out/alpine-client_${VERSION}-${RELEASE}_arm64.deb"
 
-      - name: Tidy artifacts
+      - name: "Tidy artifacts"
         run: |
           if [ -d "build/out/x86_64" ]; then
             cp -r build/out/x86_64/* build/out/
@@ -403,8 +421,9 @@ jobs:
           rm -rf build/out/x86_64
           rm -rf build/out/aarch64
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      - name: "Upload artifact"
+        # https://github.com/actions/upload-artifact/releases
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: linux-installers
           path: build/out
@@ -417,24 +436,26 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout ci/pkg/darwin
+      - name: "Checkout ci/pkg/darwin"
+        # https://github.com/actions/checkout/releases
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           sparse-checkout: |
             ci/pkg/darwin
             VERSION
 
-      - name: Download binaries
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      - name: "Download binaries"
+        # https://github.com/actions/download-artifact/releases
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: macos-binaries
           path: bin
 
-      - name: Read version
+      - name: "Read version"
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Write signing keys
+      - name: "Write signing keys"
         env:
           APPLICATION_CERT_P12: ${{ secrets.APPLE_BINARY_CERT_DATA }}
           INSTALLER_CERT_P12: ${{ secrets.APPLE_CERT_DATA }}
@@ -442,15 +463,15 @@ jobs:
           echo "$APPLICATION_CERT_P12" | base64 -d -o application_cert.p12
           echo "$INSTALLER_CERT_P12" | base64 -d -o installer_cert.p12
 
-      - name: Create output directory
+      - name: "Create output directory"
         run: mkdir -p build/out
 
-      - name: Write App Store Connect API key
+      - name: "Write App Store Connect API key"
         env:
           APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
         run: echo "$APP_STORE_CONNECT_KEY" > app_store_connect_key.json
 
-      - name: Set up AMD64 environment
+      - name: "Set up AMD64 environment"
         run: |
           set -euo pipefail
 
@@ -467,7 +488,7 @@ jobs:
           echo "AMD64_APP=${APP}" >> $GITHUB_ENV
           echo "AMD64_DIR=${AMD64_DIR}" >> $GITHUB_ENV
 
-      - name: Sign AMD64 Binary
+      - name: "Sign AMD64 Binary"
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "${{ env.AMD64_APP }}/MacOS/pinnacle-darwin-amd64"
@@ -476,7 +497,7 @@ jobs:
           sign: true
           sign_args: "--code-signature-flags=runtime"
 
-      - name: Sign AMD64 App Bundle
+      - name: "Sign AMD64 App Bundle"
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "${{ env.AMD64_DIR }}/Alpine Client.app"
@@ -485,7 +506,7 @@ jobs:
           sign: true
           sign_args: "--code-signature-flags=runtime"
 
-      - name: Package AMD64
+      - name: "Package AMD64"
         run: >-
           pkgbuild
           --root "${{ env.AMD64_DIR }}"
@@ -494,7 +515,7 @@ jobs:
           --install-location /Applications
           "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
 
-      - name: Sign AMD64 Package
+      - name: "Sign AMD64 Package"
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
@@ -503,7 +524,7 @@ jobs:
           sign: true
           sign_args: "--code-signature-flags=runtime"
 
-      - name: Notarize Signed AMD64 Package
+      - name: "Notarize Signed AMD64 Package"
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
@@ -512,7 +533,7 @@ jobs:
           staple: true
           app_store_connect_api_key_json_file: app_store_connect_key.json
 
-      - name: Set up ARM64 environment
+      - name: "Set up ARM64 environment"
         run: |
           set -euo pipefail
 
@@ -530,7 +551,7 @@ jobs:
           echo "ARM64_APP=${APP}" >> $GITHUB_ENV
           echo "ARM64_DIR=${ARM64_DIR}" >> $GITHUB_ENV
 
-      - name: Sign ARM64 Binary
+      - name: "Sign ARM64 Binary"
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "${{ env.ARM64_APP }}/MacOS/pinnacle-darwin-arm64"
@@ -539,7 +560,7 @@ jobs:
           sign: true
           sign_args: "--code-signature-flags=runtime"
 
-      - name: Sign ARM64 App Bundle
+      - name: "Sign ARM64 App Bundle"
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "${{ env.ARM64_DIR }}/Alpine Client.app"
@@ -548,7 +569,7 @@ jobs:
           sign: true
           sign_args: "--code-signature-flags=runtime"
 
-      - name: Package ARM64
+      - name: "Package ARM64"
         run: >-
           pkgbuild
           --root "${{ env.ARM64_DIR }}"
@@ -557,7 +578,7 @@ jobs:
           --install-location /Applications
           "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
 
-      - name: Sign ARM64 Package
+      - name: "Sign ARM64 Package"
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
@@ -566,7 +587,7 @@ jobs:
           sign: true
           sign_args: "--code-signature-flags=runtime"
 
-      - name: Notarize Signed ARM64 Package
+      - name: "Notarize Signed ARM64 Package"
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
@@ -575,8 +596,9 @@ jobs:
           staple: true
           app_store_connect_api_key_json_file: app_store_connect_key.json
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      - name: "Upload artifact"
+        # https://github.com/actions/upload-artifact/releases
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: macos-installers
           path: build/out
@@ -589,22 +611,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout version file
+      - name: "Checkout version file"
+        # https://github.com/actions/checkout/releases
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           sparse-checkout: |
             VERSION
 
-      - name: Read version
+      - name: "Read version"
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Download
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      - name: "Download"
+        # https://github.com/actions/download-artifact/releases
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: all
 
-      - name: Reorganize artifacts
+      - name: "Reorganize artifacts"
         run: |
           mkdir -p merged/{binaries,installers}
 
@@ -618,8 +642,9 @@ jobs:
           cp -r all/macos-installers/* merged/installers/
           cp -r all/linux-installers/* merged/installers/
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      - name: "Upload artifact"
+        # https://github.com/actions/upload-artifact/releases
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: all-artifacts-${{ env.RELEASE }}
           path: merged
@@ -627,9 +652,10 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
-      - name: Create release
+      - name: "Create release"
         if: inputs.publish && github.ref == 'refs/heads/master'
-        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
+        # https://github.com/softprops/action-gh-release/releases
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
         with:
           tag_name: ${{ env.VERSION }}
           name: ${{ env.VERSION }}
@@ -648,18 +674,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout ci/pkg/linux/arch
+      - name: "Checkout ci/pkg/linux/arch"
+        # https://github.com/actions/checkout/releases
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           sparse-checkout: |
             ci/pkg/linux/arch
             VERSION
 
-      - name: Read version
+      - name: "Read version"
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Generate tarball checksum
+      - name: "Generate tarball checksum"
         run: |
           set -euo pipefail
 
@@ -671,13 +698,14 @@ jobs:
           fi
           echo "CHECKSUM=${checksum}" >> $GITHUB_ENV
 
-      - name: Update PKGBUILD
+      - name: "Update PKGBUILD"
         run: |
           sed -i "s/pkgver=1.0.0/pkgver=${VERSION}/" ci/pkg/linux/arch/PKGBUILD
           sed -i "s/sha256sums=('SKIP')/sha256sums=('${CHECKSUM}')/" ci/pkg/linux/arch/PKGBUILD
 
-      - name: Publish to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@a97f56a8425a7a7f3b8c58607f769c69b089cadb # v3.0.1
+      - name: "Publish to AUR"
+        # https://github.com/KSXGitHub/github-actions-deploy-aur/releases
+        uses: KSXGitHub/github-actions-deploy-aur@2ac5a4c1d7035885d46b10e3193393be8460b6f1 # v4.1.1
         with:
           force_push: true
           pkgname: alpine-client
@@ -694,21 +722,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: "Checkout code"
+        # https://github.com/actions/checkout/releases
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
-      - name: Read version
+      - name: "Read version"
         run: |
           echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Create sentry.io release
-        uses: getsentry/action-release@e769183448303de84c5a06aaaddf9da7be26d6c7 # v1.7.0
+      - name: "Create sentry.io release"
+        # https://github.com/getsentry/action-release/releases
+        uses: getsentry/action-release@00ed2a6cc2171514e031a0f5b4b3cdc586dc171a # v3.1.1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: pinnacle
         with:
           environment: production
-          version: ${{ env.VERSION }}
+          release: "${{ env.VERSION }}"
