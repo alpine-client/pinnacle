@@ -511,6 +511,7 @@ jobs:
 
       - name: "Sign AMD64 Binary"
         if: inputs.sign
+        # https://github.com/indygreg/apple-code-sign-action
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "${{ env.AMD64_APP }}/MacOS/pinnacle-darwin-amd64"
@@ -521,6 +522,7 @@ jobs:
 
       - name: "Sign AMD64 App Bundle"
         if: inputs.sign
+        # https://github.com/indygreg/apple-code-sign-action
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "${{ env.AMD64_DIR }}/Alpine Client.app"
@@ -540,6 +542,7 @@ jobs:
 
       - name: "Sign AMD64 Package"
         if: inputs.sign
+        # https://github.com/indygreg/apple-code-sign-action
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
@@ -550,6 +553,7 @@ jobs:
 
       - name: "Notarize Signed AMD64 Package"
         if: inputs.sign
+        # https://github.com/indygreg/apple-code-sign-action
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-x86_64.pkg"
@@ -578,6 +582,7 @@ jobs:
 
       - name: "Sign ARM64 Binary"
         if: inputs.sign
+        # https://github.com/indygreg/apple-code-sign-action
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "${{ env.ARM64_APP }}/MacOS/pinnacle-darwin-arm64"
@@ -588,6 +593,7 @@ jobs:
 
       - name: "Sign ARM64 App Bundle"
         if: inputs.sign
+        # https://github.com/indygreg/apple-code-sign-action
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "${{ env.ARM64_DIR }}/Alpine Client.app"
@@ -607,6 +613,7 @@ jobs:
 
       - name: "Sign ARM64 Package"
         if: inputs.sign
+        # https://github.com/indygreg/apple-code-sign-action
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
@@ -617,6 +624,7 @@ jobs:
 
       - name: "Notarize Signed ARM64 Package"
         if: inputs.sign
+        # https://github.com/indygreg/apple-code-sign-action
         uses: indygreg/apple-code-sign-action@44d0985b7f4363198e80b6fea63ac3e9dd3e9957 # v1.1
         with:
           input_path: "build/out/AlpineClientSetup-${{ env.VERSION }}-ARM64.pkg"
@@ -684,7 +692,7 @@ jobs:
       - name: "Create release"
         if: inputs.publish && github.ref == 'refs/heads/master'
         # https://github.com/softprops/action-gh-release/releases
-        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
           tag_name: ${{ env.VERSION }}
           name: ${{ env.VERSION }}
@@ -763,7 +771,7 @@ jobs:
 
       - name: "Create sentry.io release"
         # https://github.com/getsentry/action-release/releases
-        uses: getsentry/action-release@00ed2a6cc2171514e031a0f5b4b3cdc586dc171a # v3.1.1
+        uses: getsentry/action-release@db19a8438b9ff55beba8fbb40fdce2571e85bbd9 # v3.1.2
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
