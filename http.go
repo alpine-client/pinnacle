@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpine-client/pinnacle/sentry"
 	"github.com/alpine-client/pinnacle/ui"
 )
 
@@ -51,7 +50,7 @@ func (p *Pinnacle) getFromURL(ctx context.Context, url string) (*http.Response, 
 
 		response, err := httpClient.Do(request)
 		if err != nil {
-			sentry.Breadcrumb(ctx, fmt.Sprintf("[%d] request error: %v", i+1, err), slog.LevelError)
+			p.client.Breadcrumb(ctx, fmt.Sprintf("[%d] request error: %v", i+1, err), slog.LevelError)
 			continue
 		}
 

@@ -46,17 +46,17 @@ func (p *Pinnacle) Run() {
 	go func() {
 		for _, t := range []task{
 			{
-				c: sentry.NewContext(ctx, "java"),
+				c: p.client.NewContext(ctx, "java"),
 				j: p.checkJava,
 				f: p.download,
 			},
 			{
-				c: sentry.NewContext(ctx, "launcher"),
+				c: p.client.NewContext(ctx, "launcher"),
 				j: p.checkLauncher,
 				f: p.download,
 			},
 			{
-				c: sentry.NewContext(ctx, "start"),
+				c: p.client.NewContext(ctx, "start"),
 				j: p.startLauncher,
 				f: p.error,
 			},

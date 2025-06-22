@@ -11,9 +11,18 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
-var enabled bool
+type Client struct {
+	logger  *slog.Logger
+	enabled bool
+}
 
-func Start(release string, dsn string) error {
+func New(logger *slog.Logger) *Client {
+	return &Client{
+		logger: logger,
+	}
+}
+
+func (c *Client) Start(release string, dsn string) error {
 	if dsn == "" {
 		return errors.New("missing sentry DSN")
 	}
@@ -26,7 +35,7 @@ func Start(release string, dsn string) error {
 	if err != nil {
 		return err
 	}
-	enabled = true
+	c.enabled = true
 	return nil
 }
 
@@ -36,11 +45,15 @@ func Flush(timeout time.Duration) {
 
 type contextKey string
 
-func NewContext(parent context.Context, task string) context.Context {
-	if !enabled {
+func (c *Client) NewContext(parent context.Context, task string) context.Context {
+	if !c.enabled {
 		return parent
 	}
-	name, _ := os.Hostname()
+	name, err := os.Hostname()
+	if err != nil {
+		name = "unknown"
+		c.logger.WarnContext(parent, err.Error())
+	}
 	localHub := sentry.CurrentHub().Clone()
 	localHub.ConfigureScope(func(scope *sentry.Scope) {
 		scope.SetTag("Task", task)
@@ -53,8 +66,9 @@ func NewContext(parent context.Context, task string) context.Context {
 	return sentry.SetHubOnContext(ctx, localHub)
 }
 
-func Breadcrumb(ctx context.Context, desc string, level slog.Level) {
-	if !enabled {
+func (c *Client) Breadcrumb(ctx context.Context, desc string, level slog.Level) {
+	if !c.enabled {
+		c.logger.ErrorContext(ctx, desc)
 		return
 	}
 
@@ -82,11 +96,15 @@ func Breadcrumb(ctx context.Context, desc string, level slog.Level) {
 }
 
 // CaptureErr reports an error to Sentry.
-func CaptureErr(ctx context.Context, err error, attachment ...string) *sentry.EventID {
-	if err == nil || !enabled {
+func (c *Client) CaptureErr(ctx context.Context, err error, attachment ...string) *sentry.EventID {
+	if err == nil {
 		return nil
 	}
-	Breadcrumb(ctx, err.Error(), slog.LevelError)
+	if !c.enabled {
+		c.logger.ErrorContext(ctx, err.Error())
+		return nil
+	}
+	c.Breadcrumb(ctx, err.Error(), slog.LevelError)
 	if hub := sentry.GetHubFromContext(ctx); hub != nil {
 		if len(attachment) > 0 {
 			hub.ConfigureScope(func(scope *sentry.Scope) {

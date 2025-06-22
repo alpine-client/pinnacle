@@ -15,7 +15,7 @@ import (
 
 // DisplayError closes the progress-bar, sends the error to sentry and displays a pop-up for the user
 // Also adds a breadcrumb to the provided sentry hub connected to the context.
-func DisplayError(ctx context.Context, err error, logFile *os.File) error {
+func DisplayError(ctx context.Context, err error, logFile *os.File, sentryClient *sentry.Client) error {
 	if err == nil {
 		return nil
 	}
@@ -39,7 +39,7 @@ func DisplayError(ctx context.Context, err error, logFile *os.File) error {
 		}
 	}
 
-	id := sentry.CaptureErr(ctx, err, logContent)
+	id := sentryClient.CaptureErr(ctx, err, logContent)
 	if id != nil {
 		message += "\n\nCode: " + string(*id)
 	}
