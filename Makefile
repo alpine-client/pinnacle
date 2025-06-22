@@ -10,11 +10,11 @@ help:
 all: audit align tidy format lint build
 
 ## align: 📏 Optimize struct fields
-align:
-	go run github.com/dkorunic/betteralign/cmd/betteralign@v0.7.0 -apply ./...
+align: ## https://github.com/dkorunic/betteralign/releases
+	go run github.com/dkorunic/betteralign/cmd/betteralign@v0.7.1 -apply ./...
 
 ## audit: 🚀 Conduct quality checks
-audit:
+audit: ## https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck
 	go mod verify
 	go vet ./...
 	go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 -show verbose ./...
@@ -30,12 +30,12 @@ clean:
 	rm -rf ./bin
 
 ## format: 🎨 Fix code formatting
-format:
+format: ## https://github.com/mvdan/gofumpt/releases
 	go run mvdan.cc/gofumpt@v0.8.0 -w -l .
 
 ## lint: 🚨 Run lint checks
-lint:
-	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.5 run ./...
+lint: ## https://github.com/golangci/golangci-lint/releases
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
 
 ## run: ⚙️ Build and run app
 run: build
