@@ -499,6 +499,7 @@ jobs:
           AMD64_DIR="ci/pkg/darwin/x86_64"
           mkdir -p "${AMD64_DIR}"
           cp -r "ci/pkg/darwin/Alpine Client.app" "${AMD64_DIR}/"
+          cp "ci/pkg/darwin/App.entitlements" "${AMD64_DIR}/"
           
           APP="${AMD64_DIR}/Alpine Client.app/Contents"
           mkdir -p "${APP}/MacOS"
@@ -518,7 +519,9 @@ jobs:
           p12_file: application_cert.p12
           p12_password: ${{ secrets.APPLE_BINARY_CERT_PASSWORD }}
           sign: true
-          sign_args: "--code-signature-flags=runtime"
+          sign_args: |
+            --code-signature-flags=runtime
+            --entitlements-xml-file=${{ env.AMD64_DIR }}/App.entitlements
 
       - name: "Sign AMD64 App Bundle"
         if: inputs.sign
@@ -529,7 +532,9 @@ jobs:
           p12_file: application_cert.p12
           p12_password: ${{ secrets.APPLE_BINARY_CERT_PASSWORD }}
           sign: true
-          sign_args: "--code-signature-flags=runtime"
+          sign_args: |
+            --code-signature-flags=runtime
+            --entitlements-xml-file=${{ env.AMD64_DIR }}/App.entitlements
 
       - name: "Package AMD64"
         run: >-
@@ -569,6 +574,7 @@ jobs:
           ARM64_DIR="ci/pkg/darwin/arm64"
           mkdir -p "${ARM64_DIR}"
           cp -r "ci/pkg/darwin/Alpine Client.app" "${ARM64_DIR}/"
+          cp "ci/pkg/darwin/App.entitlements" "${ARM64_DIR}/"
           
           APP="${ARM64_DIR}/Alpine Client.app/Contents"
           mkdir -p "${APP}/MacOS"
@@ -589,7 +595,9 @@ jobs:
           p12_file: application_cert.p12
           p12_password: ${{ secrets.APPLE_BINARY_CERT_PASSWORD }}
           sign: true
-          sign_args: "--code-signature-flags=runtime"
+          sign_args: |
+            --code-signature-flags=runtime
+            --entitlements-xml-file=${{ env.ARM64_DIR }}/App.entitlements
 
       - name: "Sign ARM64 App Bundle"
         if: inputs.sign
@@ -600,7 +608,9 @@ jobs:
           p12_file: application_cert.p12
           p12_password: ${{ secrets.APPLE_BINARY_CERT_PASSWORD }}
           sign: true
-          sign_args: "--code-signature-flags=runtime"
+          sign_args: |
+            --code-signature-flags=runtime
+            --entitlements-xml-file=${{ env.ARM64_DIR }}/App.entitlements
 
       - name: "Package ARM64"
         run: >-
