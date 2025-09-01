@@ -31,7 +31,7 @@ func (p *Pinnacle) Run() {
 	defer cancel()
 
 	if p.isUpdateAvailable(ctx) {
-		ui.NotifyNewUpdate()
+		ui.NotifyNewUpdate(p.logger)
 	}
 
 	done := make(chan bool)
