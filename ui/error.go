@@ -55,24 +55,24 @@ func DisplayError(ctx context.Context, err error, logFile *os.File, sentryClient
 	)
 
 	if errors.Is(choice, zenity.ErrExtraButton) {
-		return openSupportWebsite()
+		return openSupportWebsite(ctx)
 	}
 
 	return nil
 }
 
 // openSupportWebsite tries to open the specified URL in the default browser.
-func openSupportWebsite() error {
+func openSupportWebsite(ctx context.Context) error {
 	const supportURL string = "https://discord.alpineclient.com"
 	var err error
 
 	switch runtime.GOOS {
 	case "windows":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", supportURL).Run()
+		err = exec.CommandContext(ctx, "rundll32", "url.dll,FileProtocolHandler", supportURL).Run()
 	case "linux":
-		err = exec.Command("xdg-open", supportURL).Run()
+		err = exec.CommandContext(ctx, "xdg-open", supportURL).Run()
 	case "darwin":
-		err = exec.Command("open", supportURL).Run()
+		err = exec.CommandContext(ctx, "open", supportURL).Run()
 	}
 
 	if err != nil {
