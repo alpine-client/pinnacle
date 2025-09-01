@@ -43,7 +43,7 @@ jobs:
     steps:
       - name: "Checkout code"
         # https://github.com/actions/checkout/releases
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: "Set up Go"
         # https://github.com/WillAbides/setup-go-faster/releases
@@ -82,14 +82,14 @@ jobs:
       - name: "Authenticate with Google Cloud"
         if: inputs.sign
         # https://github.com/google-github-actions/auth/releases
-        uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
       - name: "Set up Google Cloud SDK"
         if: inputs.sign
         # https://github.com/google-github-actions/setup-gcloud/releases
-        uses: google-github-actions/setup-gcloud@77e7a554d41e2ee56fc945c52dfd3f33d12def9a # v2.1.4
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
       - name: "Download jsign"
         if: inputs.sign
@@ -131,7 +131,7 @@ jobs:
     steps:
       - name: "Checkout code"
         # https://github.com/actions/checkout/releases
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: "Install dependencies"
         run: >-
@@ -184,7 +184,7 @@ jobs:
     steps:
       - name: "Checkout code"
         # https://github.com/actions/checkout/releases
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: "Set up Go"
         # https://github.com/WillAbides/setup-go-faster/releases
@@ -233,7 +233,7 @@ jobs:
     steps:
       - name: "Checkout .iss files"
         # https://github.com/actions/checkout/releases
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           sparse-checkout: |
             ci/pkg/windows
@@ -242,7 +242,7 @@ jobs:
 
       - name: "Download binaries"
         # https://github.com/actions/download-artifact/releases
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: windows-binaries
           path: bin
@@ -266,14 +266,14 @@ jobs:
       - name: "Authenticate with Google Cloud"
         if: inputs.sign
         # https://github.com/google-github-actions/auth/releases
-        uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
       - name: "Set up Google Cloud SDK"
         if: inputs.sign
         # https://github.com/google-github-actions/setup-gcloud/releases
-        uses: google-github-actions/setup-gcloud@77e7a554d41e2ee56fc945c52dfd3f33d12def9a # v2.1.4
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
       - name: "Download jsign"
         if: inputs.sign
@@ -315,7 +315,7 @@ jobs:
     steps:
       - name: "Checkout ci/pkg files"
         # https://github.com/actions/checkout/releases
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           sparse-checkout: |
             ci/pkg/linux
@@ -324,7 +324,7 @@ jobs:
 
       - name: "Download binaries"
         # https://github.com/actions/download-artifact/releases
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: linux-binaries
           path: bin
@@ -457,7 +457,7 @@ jobs:
     steps:
       - name: "Checkout ci/pkg/darwin"
         # https://github.com/actions/checkout/releases
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           sparse-checkout: |
             ci/pkg/darwin
@@ -465,7 +465,7 @@ jobs:
 
       - name: "Download binaries"
         # https://github.com/actions/download-artifact/releases
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: macos-binaries
           path: bin
@@ -650,7 +650,7 @@ jobs:
     steps:
       - name: "Checkout version file"
         # https://github.com/actions/checkout/releases
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           sparse-checkout: |
             VERSION
@@ -661,7 +661,7 @@ jobs:
 
       - name: "Download"
         # https://github.com/actions/download-artifact/releases
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           path: all
 
@@ -713,7 +713,7 @@ jobs:
     steps:
       - name: "Checkout ci/pkg/linux/arch"
         # https://github.com/actions/checkout/releases
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           sparse-checkout: |
             ci/pkg/linux/arch
@@ -761,7 +761,7 @@ jobs:
     steps:
       - name: "Checkout code"
         # https://github.com/actions/checkout/releases
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
 
@@ -771,7 +771,7 @@ jobs:
 
       - name: "Create sentry.io release"
         # https://github.com/getsentry/action-release/releases
-        uses: getsentry/action-release@db19a8438b9ff55beba8fbb40fdce2571e85bbd9 # v3.1.2
+        uses: getsentry/action-release@526942b68292201ac6bbb99b9a0747d4abee354c # v3.2.0
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
