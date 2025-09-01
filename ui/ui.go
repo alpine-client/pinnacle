@@ -2,7 +2,7 @@ package ui
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"math"
 
 	"github.com/ncruces/zenity"
@@ -55,7 +55,7 @@ func (pt *ProgressiveTask) UpdateProgress(v float64, label ...string) {
 	_ = dialog.Value(pt.progress)
 }
 
-func Render() {
+func Render(l *slog.Logger) {
 	if dialog != nil {
 		return
 	}
@@ -68,7 +68,7 @@ func Render() {
 		zenity.Height(uint(WindowHeight)),
 	)
 	if err != nil {
-		log.Printf("[ERROR] failed to render progress bar: %v\n", err)
+		l.Error("failed to render progress bar", "error", err)
 		dialog = nil
 	}
 }

@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -67,7 +66,7 @@ func (p *Pinnacle) setup() error {
 	}
 
 	p.logger = slog.New(slog.NewTextHandler(io.MultiWriter(os.Stdout, os.Stderr, p.logFile), nil))
-	log.SetOutput(io.MultiWriter(os.Stdout, os.Stderr, p.logFile))
+	slog.SetDefault(p.logger)
 
 	// Setup Sentry
 	p.StartSentry(version, p.fetchSentryDSN())
@@ -87,10 +86,10 @@ func (p *Pinnacle) cleanup(ctx context.Context, err error) {
 func (p *Pinnacle) download(ctx context.Context, err error) error {
 	switch {
 	case errors.Is(err, errMissingLauncher):
-		ui.Render()
+		ui.Render(p.logger)
 		return p.downloadLauncher(ctx)
 	case errors.Is(err, errMissingJava):
-		ui.Render()
+		ui.Render(p.logger)
 		return p.downloadJava(ctx)
 	}
 	return err

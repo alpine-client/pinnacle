@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/ncruces/zenity"
 )
@@ -10,9 +10,9 @@ const (
 	downloadURL = "https://alpineclient.com/download"
 )
 
-func NotifyNewUpdate() {
+func NotifyNewUpdate(l *slog.Logger) {
 	const msg = "Update available!\n\nPlease visit " + downloadURL
 
-	log.Println(msg)
+	l.Info(msg)
 	_ = zenity.Notify(msg, zenity.Title(WindowTitle))
 }

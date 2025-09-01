@@ -23,7 +23,7 @@ func (p *Pinnacle) extractArchive(ctx context.Context, src string, dest string, 
 		return err
 	}
 	if p.os == Linux && p.arch == Arm64 {
-		return p.extractTar(src, dest)
+		return p.extractTar(ctx, src, dest)
 	}
 	return p.extractZip(ctx, src, dest, pt)
 }
@@ -150,8 +150,8 @@ func (p *Pinnacle) extractZip(ctx context.Context, src string, dest string, pt *
 	return nil
 }
 
-func (*Pinnacle) extractTar(src string, dest string) error {
-	cmd := exec.Command("tar", "--strip-components=1", "-xzf", src, "-C", dest)
+func (*Pinnacle) extractTar(ctx context.Context, src string, dest string) error {
+	cmd := exec.CommandContext(ctx, "tar", "--strip-components=1", "-xzf", src, "-C", dest)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
