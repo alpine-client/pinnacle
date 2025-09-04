@@ -31,7 +31,7 @@ clean:
 
 ## format: 🎨 Fix code formatting
 format: ## https://github.com/mvdan/gofumpt/releases
-	go run mvdan.cc/gofumpt@v0.8.0 -w -l .
+	go run mvdan.cc/gofumpt@v0.9.0 -w -l .
 
 ## lint: 🚨 Run lint checks
 lint: ## https://github.com/golangci/golangci-lint/releases
