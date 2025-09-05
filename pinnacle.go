@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -19,10 +18,11 @@ import (
 )
 
 type Pinnacle struct {
-	os      OperatingSystem
-	arch    Architecture
 	logger  *slog.Logger
 	logFile *os.File
+	client  *sentry.Client
+	os      OperatingSystem
+	arch    Architecture
 	version string
 	branch  string
 }
@@ -66,7 +66,7 @@ func (p *Pinnacle) setup() error {
 	}
 
 	p.logger = slog.New(slog.NewTextHandler(io.MultiWriter(os.Stdout, os.Stderr, p.logFile), nil))
-	log.SetOutput(io.MultiWriter(os.Stdout, os.Stderr, p.logFile))
+	slog.SetDefault(p.logger)
 
 	// Setup Sentry
 	p.StartSentry(version, p.fetchSentryDSN())
@@ -78,7 +78,7 @@ func (p *Pinnacle) cleanup(ctx context.Context, err error) {
 	if err == nil {
 		return
 	}
-	p.CaptureErr(ctx, ui.DisplayError(ctx, err, p.logFile))
+	p.CaptureErr(ctx, ui.DisplayError(ctx, err, p.logFile, p.client))
 	p.CaptureErr(ctx, os.RemoveAll(p.alpinePath("launcher.jar")))
 	p.CaptureErr(ctx, os.RemoveAll(p.alpinePath("jre", "17")))
 }
@@ -86,10 +86,10 @@ func (p *Pinnacle) cleanup(ctx context.Context, err error) {
 func (p *Pinnacle) download(ctx context.Context, err error) error {
 	switch {
 	case errors.Is(err, errMissingLauncher):
-		ui.Render()
+		ui.Render(p.logger)
 		return p.downloadLauncher(ctx)
 	case errors.Is(err, errMissingJava):
-		ui.Render()
+		ui.Render(p.logger)
 		return p.downloadJava(ctx)
 	}
 	return err
@@ -348,7 +348,8 @@ func (p *Pinnacle) startLauncher(ctx context.Context) error {
 }
 
 func (p *Pinnacle) StartSentry(release string, dsn string) {
-	err := sentry.Start(release, dsn)
+	p.client = sentry.New(p.logger)
+	err := p.client.Start(release, dsn)
 	if err != nil {
 		p.logger.Warn(err.Error())
 	}
@@ -359,7 +360,7 @@ func (p *Pinnacle) CaptureErr(ctx context.Context, err error) {
 		return
 	}
 	p.logger.ErrorContext(ctx, err.Error())
-	sentry.CaptureErr(ctx, err)
+	p.client.CaptureErr(ctx, err)
 }
 
 func (p *Pinnacle) Breadcrumb(ctx context.Context, desc string, level ...slog.Level) {
@@ -370,7 +371,7 @@ func (p *Pinnacle) Breadcrumb(ctx context.Context, desc string, level ...slog.Le
 		lvl = level[0]
 	}
 	p.logger.Log(ctx, lvl, desc)
-	sentry.Breadcrumb(ctx, desc, lvl)
+	p.client.Breadcrumb(ctx, desc, lvl)
 }
 
 // alpinePath returns the absolute path of Alpine Client's
